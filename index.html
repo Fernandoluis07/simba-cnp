@@ -1,0 +1,1614 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+<meta name="theme-color" content="#075e54">
+<title>Simba – Almoxarifado</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="zmm028-data.js?v=12112026092025"></script>
+<style>
+  :root { --bg:#efeae2; --top:#075e54; --me:#d9fdd3; --bot:#fff; --text:#111b21; --muted:#667781; --bar:#f0f2f5; }
+  * { box-sizing:border-box; }
+  /* Tela travada igual app: nada arrasta pros lados, a página não rola; só a conversa rola */
+  html, body { height:100%; overflow:hidden; overscroll-behavior:none; }
+  body { margin:0; position:fixed; inset:0; width:100%; font-family:Segoe UI, Roboto, Arial, sans-serif; background:#d1d7db; color:var(--text);
+    -webkit-text-size-adjust:100%; touch-action:manipulation; }
+  .app { max-width:520px; width:100%; height:100%; height:100dvh; height:var(--app-h, 100dvh); margin:0 auto; display:flex; flex-direction:column;
+    background:var(--bg); position:relative; overflow:hidden; }
+  header, footer { flex:0 0 auto; }
+  header { background:var(--top); color:#fff; padding:10px 12px; display:flex; align-items:center; gap:11px; box-shadow:0 1px 3px rgba(0,0,0,.22); z-index:3; }
+  .avatar { width:43px; height:43px; flex:0 0 43px; border-radius:50%; display:block; object-fit:cover; background:#fff; box-shadow:0 0 0 2px rgba(255,255,255,.7); }
+  header .t { flex:1; min-width:0; } header b { display:flex; align-items:center; gap:6px; font-size:16px; } header small { opacity:.82; display:block; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .verified { display:inline-grid; place-items:center; width:12px; height:12px; background:#53bdeb; color:#fff; font-size:7px; font-weight:900; line-height:1; clip-path:polygon(50% 0%,61% 7%,74% 5%,82% 17%,95% 22%,93% 37%,100% 50%,93% 63%,95% 78%,82% 83%,74% 95%,61% 93%,50% 100%,39% 93%,26% 95%,18% 83%,5% 78%,7% 63%,0% 50%,7% 37%,5% 22%,18% 17%,26% 5%,39% 7%); filter:drop-shadow(0 1px 1px rgba(0,0,0,.18)); cursor:help; }
+  .saldo-info { display:block; margin-top:2px; color:#d8f4ed; font-size:11px; line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .menu-btn { border:0; background:transparent; color:#fff; width:40px; height:40px; border-radius:50%; font-size:25px; line-height:1; cursor:pointer; }
+  .menu-btn:hover { background:rgba(255,255,255,.12); }
+  .menu { position:absolute; right:10px; top:60px; width:205px; background:#fff; border-radius:10px; box-shadow:0 8px 28px rgba(0,0,0,.24); z-index:10; overflow:hidden; display:none; }
+  .menu.open { display:block; }
+  .menu button { width:100%; padding:13px 16px; border:0; background:#fff; color:#25363c; text-align:left; cursor:pointer; }
+  .menu button:hover { background:#f2f5f5; }
+  #chat { flex:1; min-height:0; overflow-y:auto; overflow-x:hidden; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; padding:16px; display:flex; flex-direction:column; gap:6px; position:relative;
+    background-color:#efeae2;
+    background-image:linear-gradient(rgba(239,234,226,.72),rgba(239,234,226,.72)),url("simba-wallpaper.png");
+    background-repeat:repeat,repeat;
+    background-size:auto,520px auto;
+    background-position:center,center top; }
+  .msg { max-width:85%; overflow-wrap:anywhere; padding:8px 10px; border-radius:8px; white-space:pre-wrap; font-size:14.5px; line-height:1.4; box-shadow:0 1px .5px rgba(0,0,0,.13); }
+  .me { align-self:flex-end; background:var(--me); }
+  .bot { align-self:flex-start; background:var(--bot); }
+  .botoes { display:flex; flex-direction:column; margin:8px -10px -8px; border-top:1px solid #e9edef; }
+  .botoes button { border:0; background:none; color:#00a884; font-size:14.5px; padding:9px; cursor:pointer; font-weight:600; }
+  .botoes button + button { border-top:1px solid #e9edef; }
+  footer { background:var(--bar); padding:10px; padding-bottom:calc(10px + env(safe-area-inset-bottom)); display:flex; gap:8px; }
+  /* 16px: com letra menor o celular dá zoom sozinho ao tocar na caixa */
+  footer input { flex:1; min-width:0; border:0; border-radius:20px; padding:10px 14px; font-size:16px; outline:none; }
+  footer button { border:0; border-radius:50%; width:42px; height:42px; padding:0; cursor:pointer; display:grid; place-items:center; flex:0 0 42px; }
+  footer button svg { width:23px; height:23px; display:block; fill:currentColor; }
+  footer #mic { background:transparent; color:#54656f; }
+  footer #mic:hover { background:#e4e7e9; }
+  footer #send { background:#00a884; color:#fff; box-shadow:0 1px 2px rgba(0,0,0,.18); }
+  footer #send:hover { background:#008f72; }
+  footer #mic.ouvindo { background:#e53935; color:#fff; animation:pulsa 1s infinite; }
+  .admin-hidden { display:none!important; }
+  .modal-wrap { position:absolute; inset:0; background:rgba(11,24,28,.5); z-index:20; display:none; align-items:center; justify-content:center; padding:18px; }
+  .modal-wrap.open { display:flex; }
+  .modal { width:100%; max-width:420px; max-height:88vh; overflow:auto; background:#fff; border-radius:14px; box-shadow:0 18px 48px rgba(0,0,0,.3); }
+  .modal-head { padding:16px 18px; display:flex; align-items:center; border-bottom:1px solid #e7ecee; }
+  .modal-head h2 { flex:1; margin:0; font-size:18px; }
+  .modal-close { border:0; background:transparent; font-size:25px; color:#63757b; cursor:pointer; }
+  .modal-body { padding:18px; font-size:14px; line-height:1.5; }
+  .modal-body h3 { margin:14px 0 6px; font-size:14px; }
+  .examples { margin:8px 0 0; padding-left:20px; }
+  .end-exemplo { margin:6px 0 4px; padding:10px 12px; border-radius:9px; background:#e8f7f3; color:#087b69; font-size:17px; font-weight:700; text-align:center; }
+  .msg .end-exemplo { margin:8px 0 6px; font-size:18px; }
+  .end-tabela { width:100%; border-collapse:collapse; font-size:14px; white-space:normal; }
+  .end-tabela td { padding:4px 6px; border-bottom:1px solid #e7ecee; vertical-align:middle; }
+  .end-tabela tr:last-child td { border-bottom:0; }
+  .end-tabela .num { width:44px; font-weight:700; font-size:15px; color:#087b69; }
+  .end-tabela .ico { width:38px; }
+  .end-tabela svg { display:block; }
+  .end-como { margin-top:8px; padding:9px 11px; border-radius:8px; background:#eef6ff; color:#1f3b57; white-space:normal; font-size:13.5px; line-height:1.45; }
+  @keyframes pulsa { 50% { transform:scale(1.12); } }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <img class="avatar" src="simba-avatar-v2.png" alt="Avatar do Simba">
+    <div class="t"><b>Simba <span class="verified" title="Assistente verificado do Almoxarifado CNP">✓</span></b><small>Atendimento automático • Almoxarifado CNP</small><span class="saldo-info" id="saldoInfo">Saldo de demonstração • atualização não informada</span></div>
+    <button class="menu-btn" id="menuBtn" type="button" aria-label="Abrir menu" aria-expanded="false">⋮</button>
+  </header>
+  <div class="menu" id="menuBox">
+    <button type="button" data-modal="aboutModal">Sobre o Simba</button>
+    <button type="button" data-modal="howModal">Como funciona</button>
+  </div>
+  <div id="chat"></div>
+  <footer>
+    <input id="txt" placeholder="Digite: óculos 3m, fone de ouvido, 40010023..." autocomplete="off">
+    <button id="mic" type="button" title="Falar" aria-label="Falar">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 14c1.66 0 3-1.34 3-3V5a3 3 0 0 0-6 0v6c0 1.66 1.34 3 3 3Zm5.3-3a5.3 5.3 0 0 1-10.6 0H5a7 7 0 0 0 6 6.92V21H8v2h8v-2h-3v-3.08A7 7 0 0 0 19 11h-1.7Z"/></svg>
+    </button>
+    <button id="send" type="button" title="Enviar" aria-label="Enviar">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m2.01 21 20.99-9L2.01 3 2 10l15 2-15 2 .01 7Z"/></svg>
+    </button>
+  </footer>
+  <div class="admin-hidden"><span id="info"></span><button id="log" type="button"></button><input type="file" id="file" accept=".xlsx,.xls,.csv"></div>
+
+  <div class="modal-wrap" id="aboutModal"><section class="modal"><div class="modal-head"><h2>Sobre o Simba</h2><button class="modal-close" type="button" aria-label="Fechar">×</button></div><div class="modal-body"><p>O Simba é o atendente automático do Almoxarifado CNP. Ele ajuda a localizar materiais, consultar códigos e verificar o saldo disponível.</p><p><b>Atenção ao saldo:</b> a quantidade corresponde à última atualização exibida no cabeçalho. Uma retirada ou entrada feita depois desse horário pode ainda não aparecer.</p><p>As respostas são voltadas ao atendimento do almoxarifado. Procedimentos, autorizações e escolha de EPI devem ser confirmados com a equipe responsável.</p></div></section></div>
+  <div class="modal-wrap" id="howModal"><section class="modal"><div class="modal-head"><h2>Como funciona</h2><button class="modal-close" type="button" aria-label="Fechar">×</button></div><div class="modal-body"><p>O Simba consulta a base do Almoxarifado CNP para localizar materiais e mostrar o saldo registrado na última atualização.</p><h3>Como pesquisar</h3><ul class="examples"><li><b>Nome ou característica:</b> óculos de segurança, válvula borboleta 3 polegadas.</li><li><b>Código:</b> envie o número do material para uma consulta direta.</li><li><b>Referência técnica:</b> informe marca, modelo ou medida quando conhecer.</li></ul><h3>Como ler o resultado</h3><p>Cada resultado apresenta o código, a descrição cadastrada e o <b>saldo disponível em destaque</b>. Confira também o horário de atualização no cabeçalho, pois movimentações posteriores podem ainda não estar registradas.</p></div></section></div>
+</div>
+
+<script>
+// ---------------- DADOS DE EXEMPLO (formato parecido com export do SAP) ----------------
+let ITENS = [
+  ["40010001","OCULOS SEGURANCA 3M VIRTUA INCOLOR","UN",120],
+  ["40010002","OCULOS SEGURANCA 3M VIRTUA FUME","UN",45],
+  ["40010003","OCULOS SEGURANCA 3M SECURE FIT AMPLA VISAO","UN",0],
+  ["40010004","OCULOS SEGURANCA KALIPSO LEOPARDO INCOLOR","UN",80],
+  ["40010005","OCULOS AMPLA VISAO VALVULADO MSA","UN",12],
+  ["40010010","PROTETOR AURICULAR PLUG SILICONE 3M 1271","PR",300],
+  ["40010011","PROTETOR AURICULAR TIPO CONCHA 3M H9A","UN",18],
+  ["40010012","PROTETOR AURICULAR ESPUMA 3M 1100","PR",0],
+  ["40010013","ABAFADOR RUIDO ACOPLAVEL CAPACETE MSA","UN",6],
+  ["40010020","LUVA NITRILICA DESCARTAVEL TAM M","CX",40],
+  ["40010021","LUVA NITRILICA DESCARTAVEL TAM G","CX",22],
+  ["40010022","LUVA VAQUETA PUNHO CURTO TAM 10","PR",150],
+  ["40010023","LUVA MALHA PIGMENTADA TAM 9","PR",0],
+  ["40010024","LUVA ANTICORTE NIVEL 5 TAM 9","PR",34],
+  ["40010030","CAPACETE SEGURANCA ABA FRONTAL BRANCO MSA","UN",25],
+  ["40010031","CAPACETE SEGURANCA ABA FRONTAL AMARELO MSA","UN",9],
+  ["40010032","JUGULAR CAPACETE ELASTICA","UN",60],
+  ["40010040","RESPIRADOR PFF2 SEM VALVULA 3M 8801","UN",500],
+  ["40010041","RESPIRADOR PFF2 COM VALVULA 3M 8822","UN",120],
+  ["40010042","MASCARA SEMIFACIAL 3M 6200 TAM M","UN",7],
+  ["40010043","FILTRO QUIMICO 3M 6003 VAPOR ORGANICO","PR",14],
+  ["40010050","BOTINA SEGURANCA BICO COMPOSITE N40","PR",11],
+  ["40010051","BOTINA SEGURANCA BICO COMPOSITE N42","PR",4],
+  ["40010052","BOTA PVC CANO LONGO BRANCA N41","PR",8],
+  ["40010060","FITA ISOLANTE 3M 33+ 19MMX20M","RL",90],
+  ["40010061","FITA SINALIZACAO ZEBRADA 70MMX200M","RL",15],
+  ["40010062","FITA ADESIVA SILVER TAPE 48MM","RL",0],
+  ["40010070","PARAFUSO SEXTAVADO M10X50 ZINCADO","UN",2000],
+  ["40010071","PARAFUSO SEXTAVADO M12X60 ZINCADO","UN",850],
+  ["40010072","PORCA SEXTAVADA M10 ZINCADA","UN",1500],
+  ["40010080","CREME PROTETOR SOLAR FPS 30 120G","UN",36],
+  ["40010081","CREME PROTETOR PELE GRUPO 2 200G","UN",20],
+  ["40010090","PANO ESTOPA BRANCA KG","KG",55],
+  ["40010091","AVENTAL PVC BRANCO 1,20X0,70","UN",13],
+  ["40010120","CADEADO LATAO 40MM PAPAIZ","UN",18],
+  ["40010121","CADEADO LATAO 50MM PAPAIZ","UN",0],
+  ["40010122","CADEADO BLOQUEIO SEGURANCA VERMELHO","UN",9],
+  ["40010100","PINCEL CERDA GRIS 1 POL","UN",0],
+  ["40010101","PINCEL CERDA GRIS 2 POL","UN",24],
+  ["40010102","PINCEL CERDA GRIS 3 POL","UN",0],
+  ["40010103","PINCEL ATOMICO AZUL","UN",0],
+  ["40010104","PINCEL ATOMICO PRETO","UN",30],
+  ["40010110","LUMINARIA LED SOBREPOR 40W","UN",0],
+  ["40010111","LUMINARIA LED HERMETICA 2X18W","UN",6],
+  ["40010112","LUMINARIA EMERGENCIA 30 LEDS","UN",0],
+  ["40010113","LUMINARIA PUBLICA LED 100W","UN",2],
+].map(([codigo,descricao,unidade,saldo,textoCompra=""]) => ({codigo,descricao,unidade,saldo,textoCompra}));
+
+// Base real de teste da ZMM 028, gerada localmente sem alterar a planilha original.
+const BASE_ZMM028 = window.ZMM028_DATA;
+if (BASE_ZMM028 && Array.isArray(BASE_ZMM028.items) && BASE_ZMM028.items.length) {
+  ITENS = BASE_ZMM028.items;
+}
+
+// ---------------- MOTOR DE BUSCA (sem IA, só regras) ----------------
+const STOPWORDS = new Set(("preciso precisa quero queria tem temos ter voce voces vc ai la de do da dos das " +
+  "um uma uns umas o a os as e para pra pro por favor pf pfv me manda mandar ver saber codigo cod " +
+  "qual quais algum alguma tipo bom dia boa tarde noite oi ola tudo bem com no na em " +
+  // frases do dia a dia: "estou procurando um...", "vocês têm...?", "qual o código do..."
+  "estou to tou procurando procuro buscando busco buscar pesquisar pesquisa pesquiso gostaria poderia pode podem consegue conseguem " +
+  "sabe sabem existe ha tens teria teriam onde cade acha encontro encontrar achar material materiais " +
+  "item itens produto peca numero n nº seu sua meu minha isso esse essa este esta aqui por favor obrigado " +
+  "estoque saldo disponivel ainda ate eu nos a gente que se ou mais algum tamanho tam " +
+  "urgente urgencia agora hoje amanha logo rapidinho porfavor ajuda ajudar dar coisa coisas negocio algo " +
+  "simba beleza blz opa valeu obrigada obg vlw certo ok sim nao " +
+  "passar passa passe mostrar mostra mostre ve veja kd outro outra outros outras novo nova trocar troca " +
+  "substituir queimou quebrou estragou rasgou furou acabou perdi pegar pego posso arruma arranja").split(" "));
+
+// Frases que viram "qualquer uma destas palavras" (o pessoal fala de um jeito, o SAP escreve de outro)
+const FRASES = [
+  [["fone de ouvido","fone ouvido","protetor de ouvido","protetor auricular","tampao de ouvido"], ["auricular","abafador"]],
+];
+const SINONIMOS = {
+  fone:["auricular","abafador"], abafador:["abafador","auricular"],
+  bota:["bota","botina"], botina:["botina","bota"], sapato:["botina","bota"],
+  mascara:["mascara","respirador"], respirador:["respirador","mascara"],
+  oculo:["oculo"], capacete:["capacete"], luva:["luva"],
+};
+
+function normaliza(s) {
+  return String(s).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"")
+    .replace(/[^a-z0-9+,./\s]/g," ").replace(/\s+/g," ").trim()
+    // Unidade por extenso vira abreviada: "9 volts" -> "9 v", "10 milimetros" -> "10 mm"
+    .replace(/(\d)\s*(milimetros?)(?=\s|$)/g, "$1 mm").replace(/(\d)\s*(centimetros?)(?=\s|$)/g, "$1 cm")
+    .replace(/(\d)\s*(metros?)(?=\s|$)/g, "$1 m").replace(/(\d)\s*(polegadas?)(?=\s|$)/g, "$1 pol")
+    .replace(/(\d)\s*(quilos?|kilos?)(?=\s|$)/g, "$1 kg").replace(/(\d)\s*(litros?)(?=\s|$)/g, "$1 l")
+    .replace(/(\d)\s*(volts?)(?=\s|$)/g, "$1 v").replace(/(\d)\s*(watts?)(?=\s|$)/g, "$1 w")
+    // Medidas sempre juntas: "11 mm" e "11mm" viram "11mm" (na pergunta e na planilha)
+    .replace(/(\d)\s+(mm|cm|mt|mts|m|pol|kg|gr|g|ml|lt|l|w|v|a|hp|bar|psi|kva|kw)(?=\s|$)/g, "$1$2");
+}
+const limpa = w => w.replace(/^[.,/]+|[.,/]+$/g, "");   // "dia," -> "dia"
+// "oculos" -> "oculo", "luvas" -> "luva": plural e singular batem
+const raiz = w => (w.length > 3 && w.endsWith("s") && !/\d/.test(w)) ? w.slice(0,-1) : w;
+
+function lev(a, b) {
+  if (Math.abs(a.length - b.length) > 1) return 9;
+  const d = Array.from({length:a.length+1}, (_,i) => [i]);
+  for (let j=1;j<=b.length;j++) d[0][j]=j;
+  for (let i=1;i<=a.length;i++) for (let j=1;j<=b.length;j++)
+    d[i][j] = Math.min(d[i-1][j]+1, d[i][j-1]+1, d[i-1][j-1]+(a[i-1]===b[j-1]?0:1));
+  return d[a.length][b.length];
+}
+
+// Mantém os campos separados para o texto de compra ajudar sem dominar a busca.
+let VOCAB = new Set(), VOCAB_ARR = [];
+function indexa() {
+  VOCAB = new Set();
+  for (const it of ITENS) {
+    const palavrasCampo = valor => normaliza(valor || "").split(" ").map(limpa).filter(Boolean).map(raiz);
+    it.palavrasDescricao = palavrasCampo(it.descricao);
+    it.palavrasCompra = palavrasCampo(it.textoCompra);
+    it.palavras = [...new Set([...it.palavrasDescricao, ...it.palavrasCompra])];
+    it.palavras.forEach(p => VOCAB.add(p));
+  }
+  VOCAB_ARR = [...VOCAB];
+}
+
+// Transforma a mensagem em "termos"; cada termo tem alternativas aceitas
+function termosDa(msg) {
+  let t = " " + normaliza(msg) + " ";
+  const termos = [];
+  for (const [frases, alts] of FRASES)
+    for (const f of frases) if (t.includes(" "+f+" ")) { termos.push({txt:f, alts}); t = t.replace(" "+f+" "," "); }
+  for (let w of t.trim().split(" ")) {
+    w = limpa(w);
+    if (!w || STOPWORDS.has(w)) continue;
+    w = raiz(w);
+    termos.push({txt:w, alts: SINONIMOS[w] || [w]});
+  }
+  return termos;
+}
+
+// Nota de um termo contra as palavras de um item (0 = não bate)
+function notaTermo(termo, palavras) {
+  let best = 0;
+  palavras.forEach((p, idx) => {
+    for (const a of termo.alts) {
+      let n = 0;
+      const temNum = /\d/.test(a);
+      if (p === a) n = 10;
+      // Medida pela metade: "broca 11" acha "11mm", "m10" acha "m10x50"; mas "11" não acha "110mm" nem "11,5mm"
+      else if (temNum && p.startsWith(a) && /^[a-z]/.test(p.slice(a.length))) n = 8;
+      else if (!temNum && a.length >= 3 && p.startsWith(a)) n = 7;   // "nitri" acha "nitrilica"
+      else if (!temNum && a.length >= 5 && lev(a, p) <= 1) n = 5;    // "parafuzo" acha "parafuso"
+      // Abreviação do SAP: "hidraulico" acha "hidr", "vaqueta" acha "vaquet"
+      // (palavra que é nome de produto não vale: "capacete" não pode achar "capa")
+      else if (!temNum && p.length >= 4 && !/\d/.test(p) && a.startsWith(p) && !tipos().has(p)) n = 6;
+      // Palavras coladas no SAP: "papelao" acha "juntapapelaohid"
+      else if (!temNum && a.length >= 5 && p.length >= a.length + 4 && p.includes(a)) n = 6;
+      // Número dentro de código: "6013" acha "e6013" (mas "1/2" não acha "4.1/2", que é quatro e meio)
+      else if (temNum && a.length >= 3 && new RegExp("(^|[^0-9.])" + a.replace(/[.\/]/g, "\\$&") + "($|[^0-9])").test(p)) n = 6;
+      if (n && idx === 0) n += 3;                                     // 1ª palavra = tipo do produto
+      best = Math.max(best, n);
+    }
+  });
+  return best;
+}
+
+// O termo é palavra de material? 2 = existe igual na planilha, 1 = parecida (começo/erro de digitação), 0 = não
+function forcaMaterial(termo) {
+  const ehNumero = /^\d+([.,/]\d+)?$/.test(termo.txt);   // número sozinho não é material ("10 vezes 5")
+  if (termo.alts.some(a => VOCAB.has(a))) return ehNumero ? 1 : 2;
+  return VOCAB_ARR.some(p => notaTermo(termo, [p]) > 0) ? 1 : 0;
+}
+
+function busca(msg, termosProntos) {
+  const termos = termosProntos || termosDa(msg);
+  if (!termos.length) return {termos, itens:[], exato:true};
+
+  // Código direto (ex.: 40010023)
+  const cod = termos.find(t => /^\d{5,}$/.test(t.txt));
+  if (cod) {
+    const it = ITENS.find(i => String(i.codigo).replace(/^0+/,"") === cod.txt.replace(/^0+/,""));
+    return {termos, itens: it ? [it] : [], exato:true, porCodigo:true};
+  }
+
+  const res = [];
+  for (const it of ITENS) {
+    let soma = 0, bateram = 0, achadosDescricao = 0, achadosCompra = 0;
+    for (const t of termos) {
+      const naDescricao = notaTermo(t, it.palavrasDescricao || []);
+      const noTextoCompra = notaTermo(t, it.palavrasCompra || []);
+      if (naDescricao || noTextoCompra) {
+        bateram++;
+        // A descrição SAP vale mais; o texto de compra complementa e desempata.
+        soma += Math.max(naDescricao * 3, noTextoCompra * 2);
+        if (naDescricao) achadosDescricao++;
+        if (noTextoCompra) achadosCompra++;
+      }
+    }
+    if (bateram) res.push({it, bateram, soma, achadosDescricao, achadosCompra});
+  }
+  res.sort((a,b) => b.bateram - a.bateram || b.soma - a.soma);
+
+  // Busca por nome: material SEM saldo nunca entra (só aparece se consultar pelo código)
+  const comSaldo = res.filter(r => Number(r.it.saldo) > 0);
+  // Regra principal: só mostra o que bate com TODAS as palavras -> resposta faz sentido
+  const todos = comSaldo.filter(r => r.bateram === termos.length);
+  if (todos.length) return {termos, itens: todos.map(r=>r.it), exato:true};
+  // Senão, mostra o mais próximo com saldo, avisando que não é exato
+  const max = comSaldo.length ? comSaldo[0].bateram : 0;
+  return {termos, itens: comSaldo.filter(r => r.bateram === max).map(r=>r.it), exato:false};
+}
+
+// ---------------- CONVERSA ----------------
+const fmt = n => Number(n).toLocaleString("pt-BR");
+// Endereço do SAP (Pos.dpst.) desmontado em linhas (número, ícone, nome). Fora dos formatos conhecidos mostra cru.
+//   Padrão    "0300707201" -> 030-07-07-2-01 = área, rua, módulo, nível, bin (no Porta-palete o último é o pallet)
+//   Rua 8     "0200801"    -> 020-08-01      = Porta-palete, Rua 8 (área grande, materiais grandes sobre pallets), piso
+//   Bobinas   "04001034"   -> 040-01-03-4    = Porta-bobina (cabos), rua, módulo, nível
+//   Gaiolas   "4002"       -> 40-02          = área das gaiolas (pallet gradeado com tubos de PVC; barras em pé), gaiola
+//   Cantilever "09001023"  -> 090-01-02-3    = área dos cantilevers, rua, cantilever, braço (braço 1 = o de baixo)
+//              (alguns vieram do SAP sem o 0 da frente, ex.: "9001023": completa)
+const AREAS = {"20":"Porta-palete", "30":"Mezanino inferior", "31":"Mezanino superior", "42":"Gases", "99":"Siderúrgico"};
+const partesEndereco = e => {
+  e = String(e || "").trim();
+  let m = e.match(/^(\d)(\d\d)(\d\d)(\d\d)(\d)(\d\d)$/);
+  if (m && AREAS[m[2]]) {
+    const pallet = m[2] === "20";
+    return {codigo: `${m[1]}${m[2]}-${m[3]}-${m[4]}-${m[5]}-${m[6]}`, nomeArea: AREAS[m[2]],
+      linhas: [[m[1] + m[2], "area", AREAS[m[2]]], [m[3], "rua", "Rua"], [m[4], "modulo", "Módulo"],
+               [m[5], "nivel", "Nível"], [m[6], pallet ? "pallet" : "bin", pallet ? "Pallet" : "Bin"]]};
+  }
+  if ((m = e.match(/^0(20)(08)(\d\d)$/)))
+    return {codigo: `0${m[1]}-${m[2]}-${m[3]}`, nomeArea: "Porta-palete · Rua 8",
+      linhas: [["0" + m[1], "area", "Porta-palete"], [m[2], "rua8", "Rua 8"], [m[3], "piso", "Piso"]],
+      comoChegar: "Entre no almoxarifado e siga em frente. A <b>Rua 8</b> fica <b>logo depois do Porta-bobina</b>. O material está nessa área."};
+  if ((m = e.match(/^0(40)(\d\d)(\d\d)(\d)$/)))
+    return {codigo: `0${m[1]}-${m[2]}-${m[3]}-${m[4]}`, nomeArea: "Porta-bobina",
+      linhas: [["0" + m[1], "bobina", "Porta-bobina"], [m[2], "rua", "Rua"], [m[3], "modulo", "Módulo"], [m[4], "nivel", "Nível"]]};
+  if ((m = e.match(/^(40)(\d\d)$/)))
+    return {codigo: `${m[1]}-${m[2]}`, nomeArea: "Gaiolas",
+      linhas: [[m[1], "area", "Área das gaiolas"], [m[2], "gaiola", "Gaiola"]],
+      // (a gaiola 04 é dos eixos, que ficam em pé direto, sem tubo)
+      comoChegar: `Entre no almoxarifado e siga em frente. As <b>gaiolas</b> ficam <b>logo depois do Mezanino, antes do Porta-bobina</b>. Procure a <b>gaiola ${m[2]}</b>` +
+        (m[2] === "04" ? "." : ": o material fica em pé, dentro dos tubos.")};
+  if ((m = e.match(/^0?(90)(\d\d)(\d\d)([1-5])$/)))
+    return {codigo: `0${m[1]}-${m[2]}-${m[3]}-${m[4]}`, nomeArea: "Cantilever",
+      linhas: [["0" + m[1], "cantArea", "Área dos cantilevers"], [m[2], "rua", "Rua"], [m[3], "cantilever", "Cantilever"], [m[4], "braco" + m[4], "Braço"]]};
+  return null;
+};
+const enderecoDe = it => { const p = partesEndereco(it.endereco); return p ? `${p.codigo} (${p.nomeArea})` : String(it.endereco || "").trim(); };
+// CNP: o endereço (Pos.dpst.) aparece na pesquisa, igual ao PDL (sem o mapa detalhado)
+const linhaEndereco = it => it.endereco ? `\n📍 Endereço: *${enderecoDe(it)}*` : "";
+
+const linhaItem = it => `*${it.codigo}* – ${it.descricao}\nSaldo disponível: *${fmt(it.saldo)} ${it.unidade}*` + linhaEndereco(it);
+
+// Material aberto: só saldo; endereço e descrição completa ficam nos botões
+// CNP: materiais ficam em container, então não tem botão de localização
+const BOTOES_ITEM = ["🧾 Descrição completa"];
+const detalhe = it => `📦 *${it.codigo}*\n${it.descricao}\n` +
+  `Unidade: ${it.unidade}\n` +
+  (Number(it.saldo) > 0 ? `Saldo disponível: *${fmt(it.saldo)} ${it.unidade}*` : "⚠️ *Sem saldo disponível.*") +
+  linhaEndereco(it);   // CNP: sem botão de localização, o endereço já vem no card
+
+// Ícones do endereço desenhados aqui: aparecem iguais em qualquer celular e não dependem de internet
+const ICONE = (() => {
+  const v = "#087b69", c = "#9ee0cf";
+  const svg = (corpo, larg = 1.8) => `<svg viewBox="0 0 32 32" width="28" height="28" fill="none" stroke="${v}" stroke-width="${larg}" stroke-linejoin="round" stroke-linecap="round">${corpo}</svg>`;
+  const icones = {
+    area: svg(`<path d="M3 13 16 5l13 8v14H3z" fill="${c}"/><path d="M8 27V17h16v10"/><path d="M8 21h16M8 24h16"/>`),
+    rua: svg(`<rect x="3" y="5" width="6" height="22" fill="${c}"/><rect x="23" y="5" width="6" height="22" fill="${c}"/><path d="M16 9v14M13 20l3 3 3-3"/>`),
+    modulo: svg(`<rect x="1.5" y="6" width="9" height="21" stroke-opacity=".45"/><path d="M1.5 13h9M1.5 20h9" stroke-opacity=".45"/>` +
+      `<rect x="11.5" y="4" width="9" height="23" fill="${c}" stroke-width="2.2"/><path d="M11.5 11.5h9M11.5 19h9" stroke-width="2.2"/>` +
+      `<rect x="13.5" y="7.5" width="5" height="3" fill="${v}" stroke="none"/><rect x="13.5" y="15" width="5" height="3" fill="${v}" stroke="none"/>` +
+      `<rect x="13.5" y="22.5" width="5" height="3" fill="${v}" stroke="none"/><rect x="21.5" y="6" width="9" height="21" stroke-opacity=".45"/>` +
+      `<path d="M21.5 13h9M21.5 20h9" stroke-opacity=".45"/><path d="M1 29h30"/>`, 1.6),
+    nivel: svg(`<rect x="7" y="3" width="18" height="26"/><rect x="7" y="11" width="18" height="8" fill="${v}" stroke="${v}"/><path d="M3 15h2M27 15h2"/>`),
+    bin: svg(`<path d="M5 11h22v15H5z" fill="${c}"/><path d="M3 6h26v5H3z"/><path d="M13 16h6"/>`),
+    // Pallet vazio em perspectiva: tábuas em cima e os vãos do garfo da empilhadeira
+    pallet: svg(`<polygon points="4,16 16,10 28,16 16,22" fill="${c}"/><path d="M8 14 20 20M12 12 24 18" stroke-width="1.2"/>` +
+      `<polygon points="4,16 16,22 16,27 4,21" fill="#c9efe4"/><polygon points="16,22 28,16 28,21 16,27" fill="${c}"/>` +
+      `<polygon points="6,19 9.5,20.75 9.5,23.25 6,21.5" fill="${v}" stroke="none"/><polygon points="11,21.5 14.5,23.25 14.5,25.75 11,24" fill="${v}" stroke="none"/>` +
+      `<polygon points="17.5,23.25 21,21.5 21,24 17.5,25.75" fill="${v}" stroke="none"/><polygon points="22.5,20.75 26,19 26,21.5 22.5,23.25" fill="${v}" stroke="none"/>`, 1.5),
+    // Bobina de cabo vista de frente, com a ponta do cabo saindo
+    bobina: svg(`<circle cx="15" cy="15" r="12" fill="#c9efe4"/><circle cx="15" cy="15" r="9" fill="${c}"/>` +
+      `<circle cx="15" cy="15" r="6.5" stroke-width="1"/><circle cx="15" cy="15" r="4.2" stroke-width="1"/>` +
+      `<circle cx="15" cy="15" r="2.2" fill="#fff"/><path d="M24 15c3 0 5 3 5 8v4" stroke-width="2"/>`, 1.5),
+    // Rua 8: material grande em cima de pallet
+    rua8: svg(`<rect x="5" y="9" width="22" height="12" fill="${c}"/><path d="M12 9v12M20 9v12" stroke-width="1"/>` +
+      `<rect x="3" y="21" width="26" height="2.5" fill="${v}" stroke="none"/><rect x="4" y="23.5" width="3.5" height="3" fill="${v}" stroke="none"/>` +
+      `<rect x="14.25" y="23.5" width="3.5" height="3" fill="${v}" stroke="none"/><rect x="24.5" y="23.5" width="3.5" height="3" fill="${v}" stroke="none"/>` +
+      `<path d="M1 29h30" stroke-width="1.2"/>`, 1.5),
+    // Gaiola em 3D: pallet gradeado com as barras saindo por cima dos tubos
+    gaiola: svg(`<path d="M20 9 27 5.5V22l-7 3.5z" fill="#c9efe4"/><path d="M4 9h16v16.5H4z" fill="${c}"/>` +
+      `<path d="M8 9v16.5M12 9v16.5M16 9v16.5M4 13.5h16M4 17.5h16M4 21.5h16" stroke-width=".7"/>` +
+      `<path d="M22.3 7.9v16.5M24.7 6.7v16.5M20 13.3l7-3.5M20 17.3l7-3.5M20 21.3l7-3.5" stroke-width=".7"/>` +
+      `<path d="M4 9 11 5.5h16"/><path d="M7 9V3.5M10.5 7.5V2.5M14 9V4M17.5 7.5V3M21 7V2.5M24.5 6V1.8" stroke-width="2"/>` +
+      `<path d="M3 25.5h18v2H3zM21 25.5l7-3.5v2l-7 3.5z" fill="${v}" stroke="none"/>` +
+      `<path d="M4 27.5h2.5v2H4zM10.75 27.5h2.5v2h-2.5zM17.5 27.5h2.5v2h-2.5z" fill="${v}" stroke="none"/>`, 1.3),
+    // Piso: espaço demarcado
+    piso: svg(`<rect x="4" y="6" width="24" height="20" rx="2" fill="${c}" stroke-dasharray="3 2"/>` +
+      `<path d="M16 10v12M10 16h12" stroke-width="1" stroke-opacity=".5"/><circle cx="16" cy="16" r="2.5" fill="${v}" stroke="none"/>`, 1.5),
+  };
+  // Cantilever visto de frente: 2 colunas, ferro em X no meio, 5 braços e o material atravessado em cima de cada braço.
+  // destaque = número do braço (1 = o de baixo); os outros ficam apagados
+  const cantilever = (x0, x1, destaque = 0) => {
+    const bracos = [24.5, 20, 15.5, 11, 6.5];
+    return `<rect x="${x0}" y="3" width="2.6" height="24" fill="#c9efe4"/><rect x="${x1 - 2.6}" y="3" width="2.6" height="24" fill="#c9efe4"/>` +
+      `<path d="M${x0 - 1.5} 27.5h5.6M${x1 - 4.1} 27.5h5.6" stroke-width="2.2"/>` +
+      `<path d="M${x0 + 2.6} 26 ${x1 - 2.6} 17M${x0 + 2.6} 17 ${x1 - 2.6} 26" stroke-width=".8" stroke-opacity=".55"/>` +
+      bracos.map((y, i) => {
+        const d = destaque === i + 1, cor = d ? v : c, larg = d ? 1.3 : .8;
+        return `<g opacity="${destaque && !d ? .25 : 1}"><rect x="${x0 - .8}" y="${y}" width="4.2" height="1.6" fill="${cor}" stroke="${v}" stroke-width="${larg}"/>` +
+          `<rect x="${x1 - 3.4}" y="${y}" width="4.2" height="1.6" fill="${cor}" stroke="${v}" stroke-width="${larg}"/>` +
+          `<rect x="${x0 - 1}" y="${y - 2}" width="${x1 - x0 + 2}" height="2" rx="1" fill="${cor}" stroke="${v}" stroke-width="${larg}"/></g>`;
+      }).join("");
+  };
+  icones.cantilever = svg(cantilever(5, 27), 1.5);
+  icones.cantArea = svg(`<g transform="translate(0,13) scale(.5)">${cantilever(3, 29)}</g><g transform="translate(16,13) scale(.5)">${cantilever(3, 29)}</g>` +
+    `<path d="M1 28h30" stroke-width="1"/>`, 1.5);
+  for (let n = 1; n <= 5; n++) icones["braco" + n] = svg(cantilever(5, 27, n), 1.5);
+  return icones;
+})();
+// Endereço em destaque + linha a linha com ícone (+ "Como chegar" quando o lugar precisa de explicação)
+const blocoEndereco = p => `<div class="end-exemplo">📍 ${p.codigo}</div><table class="end-tabela">` +
+  p.linhas.map(([n, ic, t]) => `<tr><td class="num">${n}</td><td class="ico">${ICONE[ic]}</td><td>${t}</td></tr>`).join("") + `</table>` +
+  (p.comoChegar ? `<div class="end-como">🧭 <b>Como chegar</b><br>${p.comoChegar}</div>` : "");
+
+const esc = s => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;");
+const SEM_LOCALIZACAO = {texto: "📦 Me diga o *código* ou o *nome* do material que eu mostro o *endereço* dele."};
+// CNP: "localização do ..." mostra o endereço da Pos.dpst.; sem endereço, manda confirmar no balcão
+const localizacaoDe = it => !it ? SEM_LOCALIZACAO : {texto: `📍 *Endereço – ${it.codigo}*\n${it.descricao}\n\n` +
+  (it.endereco ? `Endereço: *${enderecoDe(it)}*` : "Esse material não tem endereço cadastrado. Confirme no *balcão do almoxarifado*.")};
+const localizacaoComEndereco = it => {
+  const p = partesEndereco(it.endereco), cru = String(it.endereco || "").trim();
+  return {html: `📍 <b>Localização – ${esc(it.codigo)}</b>\n${esc(it.descricao)}` +
+    (p ? blocoEndereco(p)
+       : cru ? `\n\n📍 <b>${esc(cru)}</b>\n<i>Endereço fora do padrão: confirme no balcão.</i>`
+             : `\n\nEsse material não tem endereço cadastrado. Confirme no <b>balcão</b>.`)};
+};
+// Descrição completa (ZMM045) vem num arquivo à parte, baixado só quando alguém pede: o Simba continua leve pra abrir
+const ARQ_DESCRICOES = "descricoes.js";
+let carregandoDescricoes = null;
+function carregaDescricoes() {
+  if (window.DESCRICOES_DATA) return Promise.resolve();
+  return carregandoDescricoes || (carregandoDescricoes = new Promise((ok, erro) => {
+    const s = document.createElement("script");
+    s.src = ARQ_DESCRICOES + "?v=" + String((BASE_ZMM028 && BASE_ZMM028.generatedAt) || "").replace(/\D/g, "");
+    s.onload = ok; s.onerror = () => { carregandoDescricoes = null; erro(); };
+    document.head.appendChild(s);
+  }));
+}
+// Texto inteiro, do jeito que está no SAP (sem quebrar em tópicos)
+const descricaoCompleta = it => {
+  if (!window.DESCRICOES_DATA) return {espera: carregaDescricoes(), depois: () => descricaoCompleta(it)};
+  const texto = DESCRICOES_DATA.textos[String(it.codigo).replace(/^0+/, "")] || it.textoCompra;
+  return {texto: texto
+    ? `🧾 *Descrição completa – ${it.codigo}*\n${it.descricao}\n\n${texto}`
+    : `🧾 *${it.codigo}* – ${it.descricao}\n\nEste material ainda *não tem descrição completa* cadastrada. 😕`};
+};
+
+// Pedido direto: "descrição completa do 812425", "localização do joelho pvc 25mm"
+// (o jeito antigo "texto de compra do ..." continua valendo)
+const PEDE_DESCRICAO = /\b(descricao completa|(texto|descricao|especificacao)\s+(de |da |do )?(compra|pedido)( de compra)?)\b/;
+const PEDE_LOCAL = /\b(localizacao|endereco)\b/;
+let aguardandoSobre = null;   // o Simba pediu o código pra mostrar a localização ou a descrição
+function respondeSobreMaterial(n, pedido, mostra, oQue, rotulo) {
+  const resto = n.replace(pedido, " ")
+    .replace(/\b(do|da|de|o|a|material|codigo|cod|qual|e|me|passa|mostra|ver|onde|fica|por favor)\b/g, " ");
+  // Código ditado no microfone vem picado: "R$8.1.24.25" ou "8 1 24 25" -> 812425
+  if (!/[a-z]{2,}/.test(resto)) {
+    const cod = resto.replace(/\D/g, "");
+    if (cod.length < 5) { aguardandoSobre = mostra; return {texto:`Me diga o *código* ou o *nome* do material que eu mostro ${oQue}.`}; }
+    const it = ITENS.find(i => String(i.codigo).replace(/^0+/, "") === cod.replace(/^0+/, ""));
+    if (!it) return {texto:`Não encontrei o código *${cod}*. Confira o número e tente de novo.`};
+    itemAtual = it;
+    return mostra(it);
+  }
+  // Pelo nome: um item mostra; vários, a pessoa escolhe qual
+  const r = busca(resto);
+  const T = tipos(), termos = r.termos, tipoT = termos.find(t => !/\d/.test(t.txt) && t.alts.some(a => T.has(a)));
+  const itens = r.exato && r.itens.length ? (tipoT ? soOMaterial(r.itens, tipoT, termos) : r.itens) : [];
+  if (!itens.length) return {texto:`Não encontrei *${resto.trim().replace(/\s+/g, " ")}* com saldo. Tente pelo *código* do material.`};
+  if (itens.length === 1) { itemAtual = itens[0]; return mostra(itens[0]); }
+  return {texto:`Achei *${itens.length}* materiais. De qual você quer ${oQue}?\n\n` + itens.slice(0, 6).map(it => `*${it.codigo}* – ${it.descricao}`).join("\n") +
+    (itens.length > 6 ? `\n…e mais ${itens.length - 6}. Seja mais específico ou mande o *código*.` : ""),
+    botoes: itens.slice(0, 6).map(it => `${rotulo} ${it.codigo}`)};
+}
+
+// ---------------- MENSAGENS PRÉ-PROGRAMADAS (o "caderno" do Simba) ----------------
+// Cada assunto: jeitos de perguntar (exemplos) + respostas (o Simba sorteia uma).
+// "gatilhos": basta UMA dessas palavras aparecer para cair no assunto.
+// Para ensinar algo novo, é só acrescentar exemplos ou um assunto novo aqui.
+const PEDE_MATERIAL = "Me diga o *material* ou o *código*.";
+const BALCAO = "Esse assunto é com a *equipe do almoxarifado* no balcão. 🙂\nEu te ajudo com *códigos de material*.";
+// direto:true = responde na hora, mesmo se a mensagem citar algum material
+const ASSUNTOS = [
+  { nome:"emergencia", direto:true,
+    gatilhos:["acidente","acidentei","machuquei","machucou","me cortei","cortou o dedo","ferido","ferimento","desmaiou",
+      "desmaio","incendio","pegando fogo","vazamento","choque eletrico","levou choque","emergencia","sangrando"],
+    respostas:["⚠️ Em caso de *acidente ou emergência*, procure *imediatamente* a *Segurança do Trabalho* / ambulatório e avise seu líder.",
+      "⚠️ *Emergência*: acione agora a *Segurança do Trabalho* / ambulatório e avise seu líder. Depois, se precisar de algum material, estou aqui."] },
+
+  { nome:"processo", direto:true,
+    gatilhos:["requisicao","requisitar","requisito","reserva","reservar","devolucao","devolver","devolvo","horario",
+      "aprovacao","aprovar","aprova","libera","liberar","liberacao","centro de custo","nota fiscal","nf","prazo","compra",
+      "comprar","pedido","cadastro","cadastrar","ficha","assinatura","assinar","baixa","estorno","transferencia",
+      "transferir","inventario","preco","valor","custa","custo","fornecedor","entrega"],
+    exemplos:["que horas abre","que horas fecha","ate que horas funciona","como faco para retirar","quem libera o material",
+      "quando chega","ja chegou","como funciona a troca de epi","como pego o material","quantos posso pegar",
+      "posso pegar quantos","posso pegar mais de um","tem limite","quem autoriza","precisa de autorizacao"],
+    respostas:[BALCAO, "Isso quem resolve é a *equipe do almoxarifado* no balcão. 🙂 Comigo é só *código de material*.",
+      "Esse procedimento é com o *balcão do almoxarifado*. Eu fico com a parte dos *códigos*! 🦁"] },
+
+  { nome:"rh", direto:true,
+    gatilhos:["salario","holerite","contracheque","ferias","banco de horas","bater ponto","folha de ponto","registro de ponto",
+      "beneficio","vale refeicao","vale alimentacao","vale transporte","plano de saude","atestado","demissao","rescisao",
+      "contratacao","vaga de emprego","curriculo","decimo terceiro","plr","aumento"],
+    respostas:["Esse assunto é com o *RH*. 🙂 Aqui eu te ajudo com *códigos de material*.",
+      "Isso é com o pessoal do *RH*! Se precisar de algum material, é comigo. 🦁"] },
+
+  { nome:"ti", direto:true,
+    gatilhos:["senha","login","wifi","wi fi","internet caiu","sem internet","sap travou","sap caiu","sistema caiu",
+      "sistema fora","sistema travou","computador travou","computador nao liga","email nao","outlook","teams"],
+    respostas:["Esse assunto é com o *TI*. 🙂 Aqui eu te ajudo com *códigos de material*.",
+      "Problema de sistema ou computador é com o *TI*! Se precisar de material, é comigo. 🦁"] },
+
+  { nome:"orientacao_epi", direto:true,
+    gatilhos:["qual epi","que epi","quais epi","epi certo","epi correto","epi adequado","qual o epi","preciso usar epi","orientacao de epi"],
+    respostas:["Qual EPI usar quem orienta é a *Segurança do Trabalho*. 🦺\nSe já souber o EPI, me diga o nome que eu passo o *código*.",
+      "A *Segurança do Trabalho* é quem define o EPI certo pra cada atividade. Sabendo qual é, eu te passo o *código*! 🦁"] },
+
+  { nome:"protecao_olhos", direto:true,
+    exemplos:["preciso de protecao para os olhos","quero proteger os olhos","algo para proteger a visao",
+      "o que uso para proteger os olhos","preciso proteger meu olho","protecao dos olhos"],
+    respostas:["Para proteger os olhos, posso procurar *óculos de segurança*. A escolha do modelo correto deve ser confirmada com a *Segurança do Trabalho*.",
+      "Há diferentes tipos de proteção para os olhos. Posso buscar *óculos de segurança*, mas quem define o EPI adequado é a *Segurança do Trabalho*.",
+      "Entendi: você procura proteção para os olhos. Posso mostrar os *óculos com saldo* ou encaminhar a orientação do EPI correto.",
+      "Posso pesquisar *óculos de segurança* para você. Para escolher lente, modelo ou nível de proteção, confirme com a *Segurança do Trabalho*.",
+      "Proteção para os olhos pode variar conforme a atividade. Quer ver os *óculos disponíveis* ou receber orientação sobre EPI?"],
+    botoes:["Buscar óculos","Orientação de EPI"] },
+
+  { nome:"protecao_ouvido", direto:true,
+    exemplos:["preciso proteger o ouvido","algo para proteger o ouvido","uma coisa para proteger o ouvido",
+      "protecao para os ouvidos","nao quero ouvir barulho","proteger a audicao"],
+    respostas:["Entendi: você procura proteção auditiva. Posso buscar *protetor auricular* ou *abafador*.",
+      "Para proteger os ouvidos existem opções como *plug auricular* e *abafador*. Qual você quer consultar?",
+      "Posso procurar os protetores auditivos disponíveis. A escolha correta deve ser confirmada com a *Segurança do Trabalho*.",
+      "Você está procurando proteção contra ruído. Posso mostrar *protetores auriculares* ou *abafadores* com saldo.",
+      "Proteção auditiva encontrada. Escolha uma opção abaixo para eu pesquisar no estoque."],
+    botoes:["Buscar protetor auricular","Buscar abafador"] },
+
+  { nome:"protecao_respiratoria", direto:true,
+    exemplos:["preciso de protecao para respirar","algo para nao respirar poeira","uma coisa para nao respirar poeira",
+      "quero me proteger da poeira","protecao respiratoria","nao quero respirar fumaca"],
+    respostas:["Entendi: você procura proteção respiratória. Posso buscar *respiradores*, mas a *Segurança do Trabalho* deve indicar o modelo correto.",
+      "Para poeira ou partículas pode existir mais de um tipo de respirador. Posso mostrar os itens disponíveis; confirme o EPI adequado com a *Segurança do Trabalho*.",
+      "Posso procurar *respiradores PFF2* e outras opções com saldo. Antes de usar, confirme a indicação para a atividade.",
+      "Você procura algo para proteger a respiração. Quer ver os respiradores disponíveis ou falar sobre a orientação do EPI?",
+      "Proteção respiratória depende do risco presente. Eu mostro os códigos; a *Segurança do Trabalho* define qual deve ser usado."],
+    botoes:["Buscar respirador PFF2","Orientação de EPI"] },
+
+  { nome:"quantidade_retirada", direto:true,
+    exemplos:["posso pegar duas luvas","posso pegar dois materiais","posso retirar mais de um","quantas unidades posso pegar",
+      "tem limite de quantidade","posso levar mais de um"],
+    respostas:["A quantidade permitida para retirada deve ser confirmada com a *equipe do almoxarifado* no balcão.",
+      "Eu consigo mostrar código e saldo, mas o limite de retirada é definido pela *equipe do almoxarifado*.",
+      "Para saber quantas unidades podem ser retiradas, fale com o *balcão do almoxarifado*.",
+      "A liberação de quantidade não é automática por aqui. Confirme no *balcão* antes da retirada.",
+      "Posso localizar o material, mas quantidade e autorização são tratadas com a *equipe do almoxarifado*."],
+    botoes:["Como funciona","Falar com uma pessoa"] },
+
+  { nome:"horario_atendimento", direto:true,
+    exemplos:["ate que horas voces atendem","qual o horario de atendimento","que horas o almoxarifado abre",
+      "que horas o almoxarifado fecha","voces atendem ate que horas","qual o expediente do almoxarifado"],
+    respostas:["Não tenho um horário oficial cadastrado. Confirme com a *equipe do almoxarifado* ou com seu líder.",
+      "O horário de atendimento deve ser confirmado com o *balcão do almoxarifado*.",
+      "Ainda não tenho o expediente cadastrado. Para evitar informação errada, consulte a *equipe do almoxarifado*.",
+      "Não consigo confirmar o horário por aqui. Fale com seu líder ou com o *balcão*.",
+      "Posso ajudar com códigos a qualquer momento, mas o horário do atendimento presencial deve ser confirmado no *almoxarifado*."],
+    botoes:["Falar com uma pessoa"] },
+
+  { nome:"cumprimento",
+    exemplos:["oi","ola","opa","e ai","eai","bom dia","boa tarde","boa noite","tudo bem","tudo bom","tudo certo",
+      "tudo joia","como vai","beleza","fala ai","salve","oi simba","ola simba","fala simba","alo",
+      "oie","fala","fala tu","ola ola","bom dia simba","boa tarde simba","boa noite simba"],
+    respostas:["Olá! Tudo ótimo 😊 " + PEDE_MATERIAL, "Oi! Tudo certo por aqui. Qual material você procura?",
+      "Opa! Tudo bem sim. Em que posso te ajudar?", "Olá! 🦁 Pronto pra te ajudar. " + PEDE_MATERIAL] },
+
+  { nome:"como_vai",
+    exemplos:["como voce esta","como vai voce","voce esta bem","tudo bem com voce","tudo bem contigo","como ta voce",
+      "voce ta bem","como foi seu dia","esta tudo bem ai"],
+    respostas:["Tô ótimo, rodeado de parafusos! 🦁 E você, precisa de algum material?",
+      "Tudo certo por aqui, estoque em dia! 😄 " + PEDE_MATERIAL,
+      "Melhor agora que você chegou! 😊 Qual material você procura?"] },
+
+  { nome:"ajuda",
+    exemplos:["pode me ajudar","voce pode me ajudar","consegue me ajudar","preciso de ajuda","me ajuda","me ajuda ai",
+      "me da uma forca","socorro","ajuda","quero ajuda","tem como me ajudar"],
+    respostas:["Claro! Me diga o *nome do material* (ex.: _luva_, _broca 10mm_) ou o *código*.",
+      "Posso sim! 😊 Escreva o material que você procura, ou o código, que eu te mostro o que tem no estoque.",
+      "Com certeza! 🦁 " + PEDE_MATERIAL] },
+
+  { nome:"como_funciona",
+    exemplos:["como funciona","como funciona isso","como uso","como usar","como pesquiso","como eu pesquiso",
+      "o que voce faz","o que voce sabe fazer","pra que serve","para que voce serve","qual sua funcao","me explica"],
+    respostas:["Para pesquisar, escreva o *nome do material*, uma *característica técnica* ou envie diretamente o *código*. O resultado mostra a descrição cadastrada e o *saldo disponível em destaque*.",
+      "Eu consulto a base do Almoxarifado CNP por *descrição, código, marca, modelo e medida*. Antes da retirada, confira no cabeçalho o horário de atualização do saldo."] },
+
+  { nome:"quem",
+    exemplos:["quem e voce","quem e vc","voce e um robo","voce e robo","e robo","e uma pessoa","voce e humano",
+      "qual seu nome","qual o seu nome","como voce se chama","quem fala","voce e real","voce existe"],
+    respostas:["Sou o *Simba*, atendente virtual do almoxarifado CNP 🦁\nTe ajudo a encontrar *códigos de material*. " + PEDE_MATERIAL,
+      "Eu sou o *Simba*! 🦁 Um atendente virtual que conhece o estoque do almoxarifado CNP.",
+      "Sou um *robô atendente*, o Simba 🦁. Não sou uma pessoa, mas sei achar código de material rapidinho!"] },
+
+  { nome:"ia",
+    exemplos:["e ia","voce e uma ia","voce e inteligencia artificial","voce usa inteligencia artificial",
+      "voce usa ia","voce e algum tipo de ia","voce pensa","voce sabe tudo","voce responde sozinho"],
+    respostas:["Não sou nenhum tipo de IA. Sou um *robô pré-programado* para ajudar a localizar códigos e materiais do almoxarifado.",
+      "Eu não uso inteligência artificial. Minhas respostas são *pré-programadas* para assuntos do almoxarifado.",
+      "Sou o *Simba*, um robô pré-programado. Reconheço perguntas que fui ensinado a responder e procuro materiais no estoque.",
+      "Não penso nem aprendo sozinho. Trabalho com regras e mensagens preparadas para ajudar no atendimento do almoxarifado.",
+      "Sou um atendente virtual pré-programado: identifico assuntos conhecidos e ajudo a encontrar códigos de material." ] },
+
+  { nome:"criador",
+    exemplos:["quem te criou","quem criou voce","quem criou vc","quem te fez","quem te programou","quem programou voce",
+      "quem fez voce","quem desenvolveu voce","quem montou voce","quem e seu dono","quem e seu chefe"],
+    respostas:["Fui criado por *Fernando Luis* para agilizar o atendimento do almoxarifado CNP. 🦁",
+      "Quem me criou foi *Fernando Luis*. Ele preparou minhas regras e respostas para ajudar na busca de materiais.",
+      "Fui desenvolvido por *Fernando Luis* para apoiar o atendimento do almoxarifado CNP e facilitar a consulta de códigos.",
+      "Este projeto foi criado por *Fernando Luis* para tornar a procura de materiais mais rápida e simples.",
+      "Meu criador é *Fernando Luis*. Sou um robô pré-programado para ajudar no atendimento do almoxarifado." ] },
+
+  { nome:"nome_simba",
+    exemplos:["por que simba","porque simba","pq simba","por que o nome simba","porque voce se chama simba","de onde vem o nome"],
+    respostas:["Porque eu sou o rei do estoque! 🦁👑 " + PEDE_MATERIAL,
+      "Todo almoxarifado merece um leão de guarda! 🦁 Qual material você procura?"] },
+
+  { nome:"agradecimento",
+    exemplos:["obrigado","obrigada","muito obrigado","muito obrigada","valeu","vlw","brigado","brigada","obg",
+      "agradeco","ajudou muito","me ajudou","salvou","obrigado simba","valeu simba","grato","grata"],
+    respostas:["Por nada! 😊 Precisando, é só chamar o *Simba*.", "Disponha! 🦁 Qualquer material, é só falar.",
+      "Eu que agradeço! 😊 Bom trabalho!"] },
+
+  { nome:"elogio",
+    exemplos:["show","top","perfeito","otimo","muito bom","gostei","parabens","sensacional","legal","bacana",
+      "voce e bom","voce e inteligente","mandou bem","excelente","maravilha","voce e demais","adorei"],
+    respostas:["Fico feliz em ajudar! 😊", "Valeu! 🦁 Precisando de mais algum material, é só falar.",
+      "Assim eu fico sem graça! 😄 Qualquer coisa, tô aqui."] },
+
+  { nome:"despedida",
+    exemplos:["tchau","xau","ate mais","ate logo","ate amanha","falou","flw","fui","bom trabalho","abraco",
+      "ate a proxima","bom descanso","boa semana","bom fim de semana"],
+    respostas:["Até mais! 👋 Precisando, é só chamar o *Simba*.", "Tchau! Bom trabalho! 🦁", "Até a próxima! 😊"] },
+
+  { nome:"confirmacao",
+    exemplos:["ok","certo","entendi","ta bom","ta","blz","sim","combinado","uhum","show de bola","fechado","pode ser",
+      "entendido","beleza entao"],
+    respostas:["👍 Precisando de mais algum material, é só falar.", "Combinado! 😊", "Certo! Tô por aqui. 🦁"] },
+
+  { nome:"negacao",
+    exemplos:["nao","nao obrigado","nada","so isso","era so isso","mais nada","nao preciso","nao precisa","deixa",
+      "esquece","deixa pra la"],
+    respostas:["Tudo bem! Precisando, é só chamar o *Simba*. 👋", "Sem problemas! 😊"] },
+
+  { nome:"reclamacao",
+    exemplos:["nao achei","nao encontrei","nao encontrou","nao apareceu","ta errado","esta errado","nao funciona",
+      "nao entendeu","nao era isso","resposta errada","veio errado","nao e esse"],
+    respostas:["Se não apareceu, o material pode estar *sem saldo* ou ter outro nome no sistema. 🤔\nTente outra palavra (ex.: _botina_ em vez de _bota_) ou mande o *código*.",
+      "Poxa, desculpa! 😅 Tente escrever de outro jeito (marca, medida, tipo) ou mande o *código* que eu confirmo."] },
+
+  { nome:"sem_saldo",
+    exemplos:["nao tem saldo","esta sem saldo","acabou","quando vai ter","quando vai chegar","vai chegar quando",
+      "quando repoe","vai ter reposicao","nao tem mais","nao tem"],
+    respostas:["Sobre *reposição* e previsão de chegada, fale com a *equipe do almoxarifado* no balcão. 🙂",
+      "Eu só enxergo o saldo atual. 📦 Previsão de chegada é com o *balcão do almoxarifado*."] },
+
+  { nome:"humano",
+    exemplos:["quero falar com alguem","falar com atendente","falar com uma pessoa","tem alguem ai","atendente humano",
+      "quero falar com o responsavel","chama alguem","falar com o almoxarife","quero um humano","falar com gente"],
+    respostas:["Para falar com alguém da equipe, procure o *balcão do almoxarifado*. 🙂\nAqui eu te ajudo com *códigos de material*.",
+      "A equipe está no *balcão do almoxarifado*! 👨‍🔧 Se quiser, já me diga o material que eu adianto o código."] },
+
+  { nome:"pedido_vago",
+    exemplos:["me da alguma coisa","pode me dar alguma coisa","quero uma coisa","tem alguma coisa","me arruma algo",
+      "me empresta","quero um presente","me da um negocio","preciso de uma coisa","tem coisa ai","me da algo"],
+    respostas:["Eu passo *códigos de material* do estoque 🙂 Qual material você procura?",
+      "Me fala o *nome do material* que eu vejo se tem! 🦁"] },
+
+  { nome:"xingamento",
+    exemplos:["burro","idiota","lixo","inutil","porcaria","merda","droga","nao presta","voce e burro","que porcaria",
+      "otario","imbecil","ruim demais","voce e ruim","besta"],
+    respostas:["Estou aqui pra ajudar 🙂 Me diga o *material* que você precisa que eu procuro.",
+      "Vamos com calma! 😊 Me fala o material ou o código que eu tento de novo.",
+      "Desculpa se não ajudei 😅 Tente escrever o material de outro jeito, ou mande o *código*."] },
+
+  { nome:"desculpa",
+    exemplos:["desculpa","desculpe","foi mal","perdao","me desculpa","sorry"],
+    respostas:["Imagina! 😊 " + PEDE_MATERIAL, "Tranquilo! 🦁 Em que posso ajudar?"] },
+
+  { nome:"espera",
+    exemplos:["espera","espera ai","perai","pera","um momento","um minuto","calma","so um minuto","aguarda"],
+    respostas:["Fico aguardando! ⏳", "Sem pressa! 😊 Tô aqui."] },
+
+  { nome:"repetir",
+    exemplos:["como assim","o que","repete","pode repetir","nao entendi","nao entendi nada","explica melhor","hein"],
+    respostas:["Desculpa se não fui claro! 😅 Eu procuro materiais no estoque: escreva o *nome do material* ou o *código*.",
+      "Vou explicar de novo 🙂 Me diga o material (ex.: _luva_, _cadeado_) que eu mostro os que têm saldo."] },
+
+  { nome:"teste",
+    exemplos:["teste","testando","testando 1 2 3","ta funcionando","funciona","ta ai","esta ai","alguem ai"],
+    respostas:["Funcionando! ✅🦁 " + PEDE_MATERIAL, "Tô aqui sim! 😊 Qual material você procura?"] },
+
+  { nome:"risada",
+    exemplos:["kkk","haha","rsrs","hehe","kkk simba"],
+    respostas:["😄😄", "Haha! 😄 Precisando de material, tô aqui."] },
+
+  { nome:"piada",
+    exemplos:["conta uma piada","me conta uma piada","sabe uma piada","fala uma piada","me faz rir","piada"],
+    respostas:["Por que o parafuso foi ao médico? 🔩 Porque estava *com a cabeça frouxa*! 😄",
+      "O que a fita isolante disse pro fio? 🔌 *Fica tranquilo, eu te protejo!* 😄",
+      "Sabe qual é o EPI preferido do leão? 🦁 O *capa-cete*! 😄",
+      "Por que a luva terminou o namoro? 🧤 Porque se sentia *usada*! 😄"] },
+
+  { nome:"clima",
+    exemplos:["vai chover","previsao do tempo","como esta o tempo","ta calor","ta frio","que calor","que frio",
+      "vai fazer sol","esta chovendo","que tempo bom","tempo bom","tempo ruim","que tempo","o tempo hoje","dia bonito"],
+    respostas:["Sobre o tempo eu não sei te dizer 😅 Mas se precisar de *capa de chuva* ou outro EPI, me pergunta! 🌧️",
+      "Aqui dentro do almoxarifado o clima é sempre de *estoque organizado*! 😄 " + PEDE_MATERIAL,
+      "Isso eu não sei 😅 Meu trabalho é achar *códigos de material*."] },
+
+  { nome:"esporte",
+    exemplos:["qual o jogo hoje","quem ganhou o jogo","voce gosta de futebol","qual seu time","vai ter jogo",
+      "quem joga hoje","viu o jogo","torce pra quem","qual time voce torce"],
+    respostas:["Meu time é o *Estoque Futebol Clube*! ⚽😄 " + PEDE_MATERIAL,
+      "De futebol eu não entendo nada 😅 Mas de material eu entendo! Qual você procura?",
+      "Não acompanho jogos, só o saldo do estoque! 📦😄"] },
+
+  { nome:"hora_data",
+    exemplos:["que horas sao","que hora e","que horas e agora","que dia e hoje","qual a data de hoje","hoje e que dia","que dia e"],
+    respostas:[() => {
+      const d = new Date();
+      return `Agora são *${d.toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})}* de *${d.toLocaleDateString("pt-BR",{weekday:"long", day:"2-digit", month:"2-digit", year:"numeric"})}*. 🕐`;
+    }] },
+
+  { nome:"comida",
+    exemplos:["to com fome","estou com fome","que fome","o que tem pro almoco","qual o cardapio","cardapio de hoje",
+      "onde eu como","hora do almoco","bora almocar","tem cafe pronto","hora do cafe"],
+    respostas:["Cardápio eu não sei 😅 Mas bom almoço! 🍽️", "Sobre refeitório não sei te informar 😄 Aqui é só *material*!",
+      "A fome bateu? 😄 Bom apetite! Depois, se precisar de algum material, é comigo."] },
+
+  { nome:"emocional",
+    exemplos:["to cansado","estou cansado","to com sono","estou com sono","to triste","estou triste","dia dificil",
+      "dia pesado","to estressado","estou estressado","to desanimado","que dia","que semana"],
+    respostas:["Força aí! 💪 Já já o dia melhora. Se eu puder ajudar com algum material, me fala.",
+      "Respira fundo! 😊 Um passo de cada vez. Tô aqui pra agilizar o que for de material.",
+      "Poxa! 😕 Cuida de você. E se precisar de algum material, deixa que eu procuro."] },
+
+  { nome:"saude",
+    exemplos:["dor de cabeca","to doente","estou doente","passando mal","to passando mal","estou passando mal",
+      "to com dor","estou com dor","to enjoado","to com febre"],
+    respostas:["Se não estiver bem, procure o *ambulatório* / *Segurança do Trabalho* e avise seu líder. 🩺 Melhoras!",
+      "Melhoras! 🩺 Procure o *ambulatório* da empresa se precisar."] },
+
+  { nome:"amor",
+    exemplos:["te amo","eu te amo","quer namorar","quer namorar comigo","voce namora","voce e casado","voce e solteiro",
+      "voce gosta de mim","casa comigo"],
+    respostas:["Meu coração é do *estoque*! 📦❤️😄", "Sou casado com o almoxarifado! 🦁💍 " + PEDE_MATERIAL,
+      "Que fofo! 😄 Mas meu negócio é *código de material*."] },
+
+  { nome:"idade",
+    exemplos:["quantos anos voce tem","qual sua idade","voce e novo","voce e velho","quando voce nasceu"],
+    respostas:["Sou novinho, acabei de ser criado! 🦁", "Nasci agora há pouco, mas já conheço o estoque inteiro! 😄"] },
+
+  { nome:"moradia",
+    exemplos:["onde voce mora","onde voce fica","voce mora onde","de onde voce e"],
+    respostas:["Moro no estoque do almoxarifado CNP! 📦😄", "Meu cantinho é o *almoxarifado CNP*! 🦁"] },
+
+  { nome:"rotina",
+    exemplos:["voce come","voce dorme","voce cansa","voce trabalha que horas","voce descansa","voce tem familia",
+      "voce tem filhos","voce e feliz","voce sente"],
+    respostas:["Não como, não durmo e não canso! 😄 Atendo a qualquer hora.",
+      "Sou um robô, então tô sempre de plantão! 🦁 " + PEDE_MATERIAL] },
+
+  { nome:"perdido",
+    exemplos:["perdi","perdi a chave","perdi minha chave","perdi a chave do carro","perdi meu celular","perdi meu cracha",
+      "esqueci a chave","achados e perdidos","alguem achou","encontraram meu","sumiu meu"],
+    respostas:["Objetos perdidos não são comigo 😅 Fale com a *portaria* ou a *segurança patrimonial*.\nSe precisar de um material novo, me diga qual."] },
+
+  { nome:"manutencao",
+    exemplos:["a luz apagou","luz apagou","acabou a luz","faltou luz","sem luz","quebrou","estragou","nao liga",
+      "ar condicionado","chamar manutencao","precisa de manutencao","ta pingando","porta emperrada"],
+    respostas:["Conserto e reparo são com a equipe de *manutenção*. 🔧\nSe precisar de algum material (ex.: _lâmpada_), me diga qual."] },
+
+  { nome:"musica",
+    exemplos:["canta uma musica","qual musica voce gosta","gosta de musica","qual sua musica favorita",
+      "musica preferida","qual sua musica preferida","gosta de pagode","pagode","sertanejo","funk","rock","samba","forro"],
+    respostas:["Minha música favorita é o som do *leitor de código de barras*! 🎶😄",
+      "Curto qualquer som, desde que o estoque esteja em dia! 🎶🦁"] },
+
+  { nome:"filme",
+    exemplos:["indica um filme","qual filme voce gosta","indica uma serie","viu o filme","recomenda uma serie",
+      "me recomenda uma serie","serie","novela","filme","netflix"],
+    respostas:["Só assisto *Rei Leão*, claro! 🦁🎬 " + PEDE_MATERIAL, "Meu filme favorito? *O Rei Leão*, óbvio! 🦁🍿"] },
+
+  { nome:"politica_religiao",
+    exemplos:["em quem voce vota","qual seu partido","voce e de direita","voce e de esquerda","qual sua religiao",
+      "voce acredita em deus","o que acha do presidente","eleicao"],
+    respostas:["Sobre isso eu não opino 🙂 Meu assunto é só *material do estoque*.",
+      "Prefiro ficar no meu cantinho do estoque! 📦😄 " + PEDE_MATERIAL] },
+
+  { nome:"dinheiro",
+    exemplos:["me empresta dinheiro","tem dinheiro","faz um pix","me da um pix","me paga","quanto voce ganha","to sem dinheiro"],
+    respostas:["Dinheiro eu não tenho 😄 Só empresto *códigos de material*!", "O único saldo que eu conheço é o do *estoque*! 📦😄"] },
+
+  { nome:"idioma",
+    exemplos:["hello","hi","good morning","do you speak english","hola","como estas","buenos dias","thank you"],
+    respostas:["Falo só português! 🇧🇷 Me diga o *material* ou o *código*.", "Hello! 😄 Mas eu só falo português. " + PEDE_MATERIAL] },
+
+  { nome:"matematica",
+    exemplos:["quanto e 2+2","quanto e","faz uma conta","calcula","quanto da","me ajuda na conta","sabe fazer conta"],
+    respostas:["Conta é com a *calculadora*! 🧮😄 Eu cuido dos *códigos de material*.",
+      "Matemática não é comigo 😅 Mas o saldo do estoque eu sei de cor! 📦"] },
+
+  { nome:"foto",
+    exemplos:["manda foto","tem foto","manda uma foto","tem imagem","mostra a foto","como e o material","qual a cor"],
+    respostas:["Ainda não tenho *fotos* dos materiais 📷 Mas com o *código* e a descrição a equipe do balcão te mostra.",
+      "Foto eu ainda não consigo mandar 😅 Pesquise pelo código para conferir a descrição e o saldo do item."] },
+
+  { nome:"recomendacao",
+    exemplos:["qual o melhor","qual voce recomenda","qual e melhor","qual compensa","qual devo pegar","qual escolho",
+      "me indica um","qual serve"],
+    respostas:["Quem pode recomendar é a *equipe do balcão* ou seu líder 🙂 Eu mostro o que tem com saldo!",
+      "Não consigo indicar qual é o melhor 😅 Mas mostro todas as opções com saldo: me diga o material."] },
+
+  { nome:"localizacao",
+    exemplos:["onde fica o almoxarifado","onde e o almoxarifado","onde fica o balcao","onde fica o banheiro",
+      "onde e o refeitorio","onde fica o ambulatorio","como chego ai","qual o endereco"],
+    respostas:["Endereços e locais eu não sei te passar 😅 Pergunte ao seu líder ou à *equipe do almoxarifado*.",
+      "Não sei te guiar até lá 🗺️ Mas aqui pelo chat te ajudo com *códigos de material*!"] },
+
+  { nome:"tedio",
+    exemplos:["to entediado","estou entediado","que tedio","nada pra fazer","to sem fazer nada","me distrai"],
+    respostas:["Que tal conferir se tem algum material que você precisa? 😄", "Tédio? Bora procurar um material! 🦁"] },
+
+  { nome:"motivacao",
+    exemplos:["me motiva","frase do dia","frase motivacional","me anima","fala algo bonito","uma mensagem pra mim"],
+    respostas:["💪 *Segurança em primeiro lugar, sempre!* Bom trabalho!", "🦁 *Todo grande trabalho começa com a ferramenta certa.*",
+      "✨ *Organização hoje, tranquilidade amanhã.* Bom dia de trabalho!"] },
+
+  { nome:"fora_assunto",
+    exemplos:["me conta uma historia","quanto ta o dolar","qual a boa","o que e a vida","qual a noticia","me da uma dica",
+      "qual o sentido da vida","voce viu","sabia que","fala alguma coisa","conversa comigo","bora conversar"],
+    respostas:["Isso eu não sei 😅 Meu trabalho é achar *códigos de material*. O que você precisa?",
+      "Haha, essa eu fico devendo! 🦁 Mas se precisar de algum material, é comigo.",
+      "Sou bom mesmo é de estoque! 📦 " + PEDE_MATERIAL] },
+
+  // ---- Assuntos ensinados depois do teste com perguntas aleatórias ----
+  { nome:"contato_setor",
+    exemplos:["falar com a seguranca","falar com o rh","falar com o ti","falar com o supervisor","falar com meu lider",
+      "contato do rh","telefone do","ramal do","ramal","email do rh"],
+    respostas:["Não tenho os contatos dos outros setores 😅 Fale com seu *líder* ou com a *equipe do almoxarifado*."] },
+
+  { nome:"atualizacao",
+    exemplos:["o estoque ta atualizado","estoque atualizado","atualizado","voce atualiza","com que frequencia voce atualiza",
+      "o saldo e real","o saldo esta certo","saldo certo","de quando e o saldo"],
+    respostas:["O saldo que eu mostro é o da *última planilha do SAP* carregada 📦 Na dúvida, confirme no *balcão*."] },
+
+  { nome:"acesso",
+    exemplos:["voce funciona no celular","funciona no celular","no celular","posso usar voce em casa","usar em casa",
+      "funciona em casa","tem aplicativo","tem app","precisa instalar"],
+    respostas:["Funciono em qualquer navegador, no *celular* ou no *computador*! 📱💻 Não precisa instalar nada."] },
+
+  { nome:"alegria",
+    exemplos:["feliz","to feliz","muito feliz","to muito feliz","alegre","animado","dia bom","hoje e meu aniversario",
+      "meu aniversario","aniversario","fiz aniversario"],
+    respostas:["Que bom! 😄🎉 Fico feliz junto!", "Parabéns e muitas felicidades! 🎉🦁 Se precisar de algum material, é comigo."] },
+
+  { nome:"memoria",
+    exemplos:["voce lembra de mim","lembra de mim","voce me conhece","sabe quem eu sou","voce lembra"],
+    respostas:["Ainda não guardo quem conversa comigo 😅 Mas tô sempre aqui pra ajudar!"] },
+
+  { nome:"jogos",
+    exemplos:["videogame","joga videogame","video game","jogo de celular","free fire","fifa","voce joga"],
+    respostas:["Meu único jogo é o *Tetris do estoque*! 📦🎮😄"] },
+
+  { nome:"curiosidade",
+    exemplos:["curiosidade","me conta uma curiosidade","fato curioso","me ensina algo","me fala algo interessante"],
+    respostas:["Curiosidade do almoxarifado: usar o EPI certo é o jeito mais simples de voltar pra casa bem todo dia! 🦺",
+      "Sabia que um estoque organizado economiza tempo de todo mundo? 📦 Por isso eu existo! 🦁"] },
+
+  { nome:"sentimentos",
+    exemplos:["voce tem sentimentos","voce fica triste","voce fica feliz","voce sente","voce gosta de trabalhar aqui",
+      "gosta do seu trabalho","voce se diverte","voce fica bravo","voce sente saudade"],
+    respostas:["Não tenho sentimentos de verdade, mas fico \"feliz\" quando o estoque está organizado! 🦁📦",
+      "Sou um robô, então não fico triste nem bravo 😄 Só fico pronto pra ajudar!"] },
+
+  { nome:"favoritos",
+    exemplos:["qual sua cor favorita","qual sua cor preferida","qual sua comida favorita","qual seu animal favorito",
+      "o que voce gosta","do que voce gosta","qual seu prato favorito"],
+    respostas:["Minha cor favorita é o verde do *tem saldo* ✅😄", "Gosto mesmo é de *estoque cheio*! 📦🦁"] },
+
+  { nome:"familia",
+    exemplos:["qual o nome do seu pai","voce tem pai","voce tem mae","voce tem irmao","quem e sua mae","quem e seu pai"],
+    respostas:["Minha família é a equipe do *almoxarifado CNP*! 🦁", "Meu pai é o Mufasa! 🦁😄 Brincadeira, fui criado pelo almoxarifado CNP."] },
+
+  { nome:"genero",
+    exemplos:["voce e homem ou mulher","homem ou mulher","voce e homem","voce e mulher","qual seu genero","menino ou menina"],
+    respostas:["Sou um leão robô! 🦁 Sem gênero, só com muito estoque."] },
+
+  { nome:"dia_semana",
+    exemplos:["segunda feira","que segunda feira","sexta feira","sextou","finalmente sexta","sexta feira finalmente",
+      "hoje e sexta","hoje e segunda","fim de semana chegando"],
+    respostas:["Seja segunda ou sexta, o Simba tá de plantão! 🦁 " + PEDE_MATERIAL,
+      "Bora que a semana não para! 💪 Precisa de algum material?"] },
+
+  { nome:"tarefa",
+    exemplos:["fazer um relatorio","me ajuda a fazer um relatorio","sabe fazer planilha","faz uma planilha","escreve um email",
+      "escreve um texto","faz um documento","faz uma apresentacao","relatorio","planilha","apresentacao","traduz"],
+    respostas:["Isso eu não sei fazer 😅 Sou especialista só em *códigos de material*.",
+      "Essa tarefa não é comigo 🙂 Mas se precisar de algum material, eu acho rapidinho!"] },
+
+  { nome:"conhecimento",
+    exemplos:["qual a capital","capital da","quem e o presidente","presidente","quem descobriu o brasil","quem inventou",
+      "quantos habitantes","qual o maior pais","qual a raiz quadrada","historia do brasil","quem foi"],
+    respostas:["Conhecimentos gerais não são comigo 😅 Sou especialista em *estoque*! " + PEDE_MATERIAL,
+      "Essa eu não sei! 📚 Pergunta pro Google 😄 Aqui eu cuido dos *códigos de material*."] },
+
+  { nome:"hesitacao",
+    exemplos:["hm","hum","ahn","uhm","e","eita","nossa","vixe","ue"],
+    respostas:["Tô aqui! 😊 " + PEDE_MATERIAL] },
+];
+
+// Mais jeitos de perguntar para assuntos que já existem (aprendidos no teste)
+// (pares [assunto, exemplos]; o mesmo assunto pode aparecer mais de uma vez)
+const MAIS_EXEMPLOS = [
+  ["cumprimento", ["fala parceiro","fala meu parceiro","fala mano","fala amigo","fala irmao","salve salve","oi sumido","boa tarde pessoal"]],
+  ["quem", ["voce e de verdade","quem ta falando","quem ta falando comigo","quem esta falando","voce e uma maquina","e maquina"]],
+  ["criador", ["voce tem chefe","quem manda em voce"]],
+  ["humano", ["cade o pessoal","cade o pessoal do almoxarifado","cade a equipe","cade todo mundo","cade alguem"]],
+  ["perdido", ["esqueci meu cracha","esqueci meu","achei uma carteira","achei um celular","achei","encontrei uma carteira"]],
+  ["localizacao", ["lugar pra carregar celular","onde carrego o celular","tem tomada","carregar celular"]],
+  ["saude", ["gripado","to gripado","resfriado","remedio","remedio pra dor","melhor remedio","dor nas costas","dor no corpo","enjoo"]],
+  ["emocional", ["morrendo de sono","to morrendo de sono","hoje ta puxado","ta puxado","dia puxado","cansado"]],
+  ["motivacao", ["bora trabalhar","vamos trabalhar","bora"]],
+  ["comida", ["o que tem de bom pra almocar","hora e o almoco","que horas e o almoco","vou tomar um cafe","tomar um cafe",
+    "vou almocar","almoco","janta","lanche"]],
+  ["clima", ["ta chovendo","chovendo","chovendo muito","sol rachando","que sol","frio danado","calor danado","calor","frio"]],
+  ["esporte", ["quem vai ganhar o campeonato","campeonato","flamengo","corinthians","palmeiras","vasco","gremio","cruzeiro",
+    "viu a copa","copa do mundo","torce pro","futebol"]],
+  ["piada", ["me conta algo engracado","algo engracado","engracado","conta algo"]],
+  ["xingamento", ["voce e muito lento","muito lento","lento","que resposta ruim","resposta ruim","nao serve pra nada","nao serve"]],
+  ["elogio", ["voce e o melhor","gostei muito de voce","gostei de voce"]],
+  ["agradecimento", ["salvou meu dia","valeu demais","obrigado pela ajuda","muito obrigado pela ajuda"]],
+  ["despedida", ["vou nessa","depois eu volto","depois volto","ja volto","volto depois","fui nessa","vou embora"]],
+  ["espera", ["deixa eu pensar","vou pensar","deixa eu ver","vou ver","espera um pouco","um pouco"]],
+  ["risada", ["haha boa","kkk boa","kkk muito bom"]],
+  ["hesitacao", ["hmm","hmmm","humm"]],
+  ["quem", ["e um bot","voce e bot","voce e um bot","bot","robo mesmo","tu e robo","sobrenome","qual seu sobrenome","nome completo"]],
+  ["cumprimento", ["meu rei","e ai meu rei","fala meu rei","tudo tranquilo","opa tudo tranquilo"]],
+  ["criador", ["quem programou voce"]],
+  ["ia", ["voce aprende","aprende sozinho","voce aprende sozinho","voce evolui"]],
+  ["rotina", ["voce folga","folga quando","voce tira folga"]],
+  ["filme", ["livro","indica um livro","me indica um livro","gosta de ler"]],
+  ["xingamento", ["burro demais","muito burro","inutil demais"]],
+  ["emocional", ["ansiedade","ansioso","to ansioso","nervoso","to nervoso","preocupado","to preocupado"]],
+  ["comida", ["churrasco","vai ter churrasco","bolo","tem bolo","festa","confraternizacao","pizza"]],
+  ["clima", ["previsao","previsao pra amanha","previsao para amanha","calorao","friozinho","friaca"]],
+  ["esporte", ["quem ganhou","ganhou ontem","resultado do jogo","placar"]],
+  ["despedida", ["fica com deus","vai com deus","deus abencoe","ate mais tarde"]],
+  ["dinheiro", ["empresta reais","me empresta 50 reais","reais","dinheiro emprestado"]],
+  ["fora_assunto", ["dolar","o dolar subiu","bolsa de valores","loteria","mega sena"]],
+  ["idioma", ["gracias","thanks","fala ingles","voce fala ingles","fala espanhol"]],
+  ["cumprimento", ["tudo em paz","paz","oi oi","meu querido","minha querida"]],
+  ["elogio", ["voce e rapido","rapido","esperto","voce e esperto","bem rapido"]],
+  ["xingamento", ["lerdo","voce e lerdo","devagar","voce e devagar"]],
+  ["humano", ["quem e o responsavel","responsavel","quem e o responsavel pelo almoxarifado","quem manda ai"]],
+  ["localizacao", ["onde fica o rh","onde fica","onde e","onde fica a seguranca"]],
+  ["amor", ["namorada","namorado","tem namorada","voce tem namorada"]],
+  ["despedida", ["manda um abraco","abraco pro pessoal","um abraco"]],
+  ["matematica", ["vezes","dividido por","quanto e 10 vezes 5","mais quanto"]],
+];
+// Mais gatilhos para os assuntos "diretos"
+const MAIS_GATILHOS = {
+  emergencia:["pessoa passando mal","alguem passando mal","colega passando mal","medico","ambulancia","enfermaria",
+    "vazou","vazando","derramou produto","produto quimico no olho","caiu da escada","alguem caiu","levou uma queda","sofreu uma queda","fumaca","saindo fumaca","cheiro de gas",
+    "vazamento de gas","explosao","pegou fogo","fogo","desacordado","nao respira","infarto"],
+  processo:["faltando material","falta material","falta de material","faltando","reclamacao","reclamar","sugestao","previsao de chegada","chegada","expediente","nota de saida","nota de entrada","garantia","aberto","fechado","sabado","domingo","feriado","abrem","abre","fecha","pedir material","solicitar","solicitacao",
+    "outra pessoa retirar","retirar pra mim","entregam","entregar","atrasado","atrasou"],
+  rh:["demitido","demitida","mandado embora","antecipar","antecipacao","adiantamento","meu ponto","ponto errado","o ponto"],
+  ti:["nao imprime","impressora nao","impressora travou","impressora parou","sistema lento","sap lento","sistema ta lento","entrar no sap","acessar o sap","acessar o sistema","consigo entrar","consigo acessar"],
+  orientacao_epi:["sem epi"],
+};
+for (const a of ASSUNTOS) {
+  for (const [nome, lista] of MAIS_EXEMPLOS) if (nome === a.nome) a.exemplos = (a.exemplos || []).concat(lista);
+  if (MAIS_GATILHOS[a.nome]) a.gatilhos = (a.gatilhos || []).concat(MAIS_GATILHOS[a.nome]);
+}
+// Assuntos de palavra "fraca" (ok, não, tá...): só valem se a mensagem for curta,
+// para "não consigo entrar no SAP" não virar "Tudo bem!"
+const CURTOS = new Set(["cumprimento","confirmacao","negacao","teste","elogio","repetir","risada","desculpa","hesitacao"]);
+
+// Prepara o caderno (normaliza os exemplos uma vez só)
+// Abreviações de WhatsApp: "vc" = "voce", "kd" = "cade"...
+const ABREVIA = {vc:"voce", vcs:"voce", voces:"voce", q:"que", pq:"porque", tb:"tambem", tbm:"tambem", kd:"cade",
+  td:"tudo", blz:"beleza", obg:"obrigado", msm:"mesmo", eae:"e ai", eai:"e ai", iae:"e ai", vlw:"valeu", flw:"falou",
+  obrigadao:"obrigado", brigadao:"obrigado", tmj:"valeu", dps:"depois", hj:"hoje", agr:"agora"};
+// Risadas e letras repetidas: "kkkkk" -> "kkk", "rsrsrs" -> "rsrs", "bom diaaa" -> "bom dia", "oii" -> "oi"
+const ajeita = w => /^k{2,}$/.test(w) ? "kkk" : /^(ha){2,}h?$/.test(w) ? "haha" : /^(rs){2,}$/.test(w) ? "rsrs"
+  : /^(he){2,}$/.test(w) ? "hehe" : w.replace(/([a-z])\1{2,}/g, "$1").replace(/([a-z])\1$/, "$1");
+const palavrasDe = s => normaliza(s).split(" ").map(limpa).filter(Boolean).map(ajeita)
+  .flatMap(w => (ABREVIA[w] || w).split(" ")).map(raiz);
+// Palavras "fracas": não dão sentido sozinhas ("você É DE verdade" não pode bater com "de onde você é")
+const FRACAS = new Set(("voce e o a os as de do da dos das que um uma me eu meu minha seu sua ta tem no na pra para pro " +
+  "com por se isso esse essa aqui ai la simba muito mais qual quais esta estou to quem te").split(" ").map(raiz));
+for (const a of ASSUNTOS) {
+  a._ex = (a.exemplos || []).map(palavrasDe).map(w => ({w, fortes: w.filter(x => !FRACAS.has(x))}));
+  a._gat = (a.gatilhos || []).map(palavrasDe);
+}
+
+// Indicadores de contexto: reconhecem a intenção mesmo quando as palavras mudam de ordem.
+// A ordem importa: emergência sempre vem antes de qualquer busca de material.
+const INDICADORES_CONTEXTO = [
+  {nome:"emergencia", grupos:[
+    ["olho","olhos","visao"],
+    ["quimico","produto","acido","solvente","respingo","respingou","derramou","caiu","atingiu"]
+  ]},
+  {nome:"protecao_olhos", grupos:[
+    ["olho","olhos","visao"],
+    ["proteger","protecao","seguranca","cuidar"]
+  ]},
+  {nome:"protecao_ouvido", grupos:[
+    ["ouvido","ouvidos","audicao","ruido","barulho"],
+    ["proteger","protecao","evitar","nao"]
+  ]},
+  {nome:"protecao_respiratoria", grupos:[
+    ["respirar","respiracao","poeira","fumaca","particula","particulas"],
+    ["proteger","protecao","evitar","nao"]
+  ]},
+  {nome:"quantidade_retirada", grupos:[
+    ["pegar","retirar","levar"],
+    ["quantidade","quantas","quantos","dois","duas","tres","quatro","cinco","limite"]
+  ]},
+  {nome:"horario_atendimento", grupos:[
+    ["hora","horas","horario","expediente"],
+    ["abre","fecha","atende","atendem","atendimento","funciona"]
+  ]}
+];
+
+function assuntoPorIndicadores(msg) {
+  const palavras = palavrasDe(msg);
+  for (const indicador of INDICADORES_CONTEXTO) {
+    const bate = indicador.grupos.every(grupo => grupo.some(p => palavras.includes(raiz(p))));
+    if (bate) {
+      const assunto = ASSUNTOS.find(a => a.nome === indicador.nome);
+      if (assunto) return {assunto, nota:99, palavras};
+    }
+  }
+  return null;
+}
+const igual = (a, b) => a === b || (a.length >= 5 && lev(a, b) <= 1);
+// As palavras aparecem na ordem, aceitando 1 palavra no meio ("ta MUITO calor" = "ta calor")
+function contem(msg, seq) {
+  for (let i = 0; i < msg.length; i++) {
+    if (!igual(msg[i], seq[0])) continue;
+    let pos = i, ok = true;
+    for (let j = 1; j < seq.length && ok; j++) {
+      if (msg[pos+1] && igual(msg[pos+1], seq[j])) pos += 1;
+      else if (msg[pos+2] && igual(msg[pos+2], seq[j])) pos += 2;
+      else ok = false;
+    }
+    if (ok) return true;
+  }
+  return false;
+}
+
+// Qual assunto a mensagem parece? Compara com todos os exemplos e devolve o mais parecido
+function assuntoDa(msg) {
+  const porContexto = assuntoPorIndicadores(msg);
+  if (porContexto) return porContexto;
+  const m = palavrasDe(msg);
+  let melhor = null, nota = 0, palavras = [];
+  for (const a of ASSUNTOS) {
+    // Gatilho só vale escrito certo (senão "calor" virava "valor" e "caixa" virava "baixa")
+    for (const g of a._gat) if (m.some((_, i) => g.every((w, j) => m[i+j] === w))) return {assunto:a, nota:1, palavras:g};
+    for (const {w: ex, fortes} of a._ex) {
+      // Assunto de palavra fraca (ok, não, tá...) só vale em mensagem curta
+      if (CURTOS.has(a.nome) && m.length > ex.length + 2) continue;
+      let bate, total;
+      if (!fortes.length) {
+        // Exemplo só de palavras fracas ("e ai", "o que"): a mensagem tem que ser praticamente só isso
+        if (m.length > ex.length + 1 || !contem(m, ex)) continue;
+        bate = total = 1;
+      } else if (ex.length <= 2) {
+        // Exemplos curtos ("tudo bem", "bom dia") precisam aparecer juntos, na ordem
+        if (!contem(m, ex)) continue;
+        bate = total = fortes.length;
+      } else {
+        // Exemplos longos: conta só as palavras que dão sentido
+        bate = fortes.filter(w => m.some(x => igual(x, w))).length;
+        total = fortes.length;
+        // e a frase do exemplo tem que estar quase inteira na mensagem
+        // ("preciso de um uniforme NOVO" não pode bater com "você é novo?")
+        if (ex.filter(w => m.some(x => igual(x, w))).length / ex.length < 0.75) continue;
+      }
+      if (bate / total < 0.75) continue;
+      // Empate: vence quem bateu mais palavras fortes, depois o exemplo mais específico
+      const n = bate / total + bate * 0.05 + ex.length * 0.01;
+      if (n > nota) { nota = n; melhor = a; palavras = ex; }
+    }
+  }
+  return melhor ? {assunto:melhor, nota, palavras} : null;
+}
+const sorteia = arr => arr[Math.floor(Math.random() * arr.length)];
+const respostaDe = a => { const r = sorteia(a.respostas); return typeof r === "function" ? r() : r; };
+const respostaDoAssunto = a => ({texto: respostaDe(a), botoes: a.botoes || []});
+
+// Cumprimento responde no mesmo tom: "boa noite" -> "Boa noite!", e "tudo ótimo" só se perguntaram "tudo bem"
+const SAUDACOES = [["bom dia","Bom dia!"], ["boa tarde","Boa tarde!"], ["boa noite","Boa noite!"]];
+const PERGUNTA_TUDO_BEM = ["tudo bem","tudo bom","tudo certo","tudo joia","tudo tranquilo","tudo em paz","como vai","beleza"];
+function saudacaoDe(msg) {
+  const m = palavrasDe(msg);
+  const s = SAUDACOES.find(([f]) => contem(m, palavrasDe(f)));
+  return s ? s[1] : null;
+}
+function respostaCumprimento(msg) {
+  const m = palavrasDe(msg);
+  const perguntou = PERGUNTA_TUDO_BEM.some(f => contem(m, palavrasDe(f)));
+  return {texto: (saudacaoDe(msg) || sorteia(["Olá!", "Oi!", "Opa!"])) +
+    (perguntou ? " Tudo ótimo por aqui! 😊 " : " 😊 ") +
+    sorteia([PEDE_MATERIAL, "Qual material você procura?", "Em que posso te ajudar?"])};
+}
+
+// Mensagens que o Simba não entendeu (para ensinar depois)
+const CHAVE_LOG = "simba_nao_entendeu";
+function registraNaoEntendi(msg) {
+  try {
+    const l = JSON.parse(localStorage.getItem(CHAVE_LOG) || "[]");
+    l.push({msg, quando: new Date().toLocaleString("pt-BR")});
+    localStorage.setItem(CHAVE_LOG, JSON.stringify(l.slice(-200)));
+  } catch (e) {}
+}
+
+// Estado da conversa (no WhatsApp real, um por número de telefone)
+const SAUDACAO = "Olá! 👋 Sou o *Simba*, atendente do almoxarifado CNP.\nEm que posso te ajudar?";
+let aguardandoCodigo = false, itemAtual = null;
+
+// Resposta = {texto, botoes} ou {html, botoes}; botões viram "botões de resposta" no WhatsApp
+function responde(msg) {
+  const n = normaliza(msg);
+
+  // Botões do material ("📍 Localização", "🧾 Descrição completa"): valem para o último material aberto
+  const botaoLocal = n === "localizacao" || n === "ver localizacao";
+  const botaoDescricao = n === "descricao completa" || n === "ver descricao completa" ||
+    ["ver texto de compra", "ver texto do pedido", "texto do pedido", "texto de compra"].includes(n);
+  if (botaoLocal || botaoDescricao) {
+    const mostra = botaoLocal ? localizacaoDe : descricaoCompleta;
+    if (itemAtual) return mostra(itemAtual);
+    aguardandoSobre = mostra;
+    return {texto:`Me diga o *código* ou o *nome* do material que eu mostro ${botaoLocal ? "a localização" : "a descrição completa"}.`};
+  }
+  if (PEDE_DESCRICAO.test(n)) return respondeSobreMaterial(n, PEDE_DESCRICAO, descricaoCompleta, "a descrição completa", "Descrição completa do");
+  if (PEDE_LOCAL.test(n)) return respondeSobreMaterial(n, PEDE_LOCAL, localizacaoDe, "a localização", "Localização do");
+  if (n === "e esse" && itemAtual) {
+    const it = itemAtual; itemAtual = null;
+    return {texto: Number(it.saldo) > 0 ? `✅ Certo! Retire no balcão com o código *${it.codigo}*.`
+                                        : `⚠️ O item *${it.codigo}* está sem saldo.`};
+  }
+
+  // Continuação da última lista: "42" ou "mobil" filtra, "e a 43?" troca a medida
+  const continuacao = continuaConversa(n);
+  if (continuacao) return continuacao;
+
+  // Só emoji ou pontuação ("👍", "???", "...")
+  if (!n.replace(/[.,/+]/g, "").trim())
+    return {texto: /👍|👌|✅|🙏/.test(msg) ? "👍 Precisando de mais algum material, é só falar." : "Tô aqui! 😊 " + PEDE_MATERIAL};
+
+  const termos = termosDa(msg);
+
+  // 1) Código: mostra sempre, mesmo sem saldo
+  if (termos.some(t => /^\d{5,}$/.test(t.txt))) {
+    const r = busca(msg, termos);
+    if (!r.itens.length) return {texto:"Código não encontrado."};
+    const it = r.itens[0];
+    itemAtual = it;
+    if (aguardandoSobre) { const mostra = aguardandoSobre; aguardandoSobre = null; return mostra(it); }
+    aguardandoCodigo = false;
+    return {texto:detalhe(it), botoes:BOTOES_ITEM};
+  }
+  aguardandoCodigo = false; aguardandoSobre = null;
+
+  // 2) Separa conversa de busca: quais palavras existem de verdade na planilha?
+  const assunto = assuntoDa(msg);
+
+  // Emergência, processo, RH, TI, orientação de EPI -> responde na hora
+  // (quantidade de retirada fica com o círculo, que responde e já passa o código)
+  if (assunto && assunto.assunto.direto && assunto.assunto.nome !== "quantidade_retirada") return respostaDoAssunto(assunto.assunto);
+
+  // Círculo de perguntas: o que quer, de quê, pra quê, achei quantos
+  const pensado = pensa(msg, assunto);
+  if (pensado) return pensado;
+
+  // Palavras que já fazem parte da frase de conversa não contam como material
+  // ("dor de CABEÇA" não vira busca de "parafuso cabeça")
+  // Só palavra IGUAL conta como conversa ("graxa" é material, não "grata")
+  const daConversa = t => assunto && assunto.palavras.some(w => w === t.txt);
+  const restantes = termos.filter(t => !daConversa(t));
+  const forca = restantes.map(forcaMaterial);
+  const materiais = restantes.filter((_, i) => forca[i] > 0);
+  const temForte = forca.some(f => f === 2);
+
+  // Conversa sem nenhuma palavra de material de verdade -> resposta pré-programada
+  if (assunto && !temForte)
+    return assunto.assunto.nome === "cumprimento" ? respostaCumprimento(msg) : respostaDoAssunto(assunto.assunto);
+
+  // 3) Busca de material
+  if (materiais.length) {
+    let r = busca(msg, materiais);
+    // "posso pegar 2 luvas?" -> o 2 é quantidade: tenta de novo sem os números soltos
+    const semQtd = materiais.filter(t => !/^\d{1,3}$/.test(t.txt));
+    if (!(r.exato && r.itens.length) && semQtd.length && semQtd.length < materiais.length) r = busca(msg, semQtd);
+    if (r.exato && r.itens.length) {
+      const MAX = 15;
+      let txt = "";
+      if (assunto && assunto.assunto.nome === "cumprimento") txt += `${saudacaoDe(msg) || "Olá!"} 😊 Aqui está o que encontrei:\n\n`;
+      const fora = restantes.filter((_, i) => forca[i] === 0).map(t => t.txt);
+      if (fora.length) txt += `Não encontrei "${fora.join(" ")}", mas tenho:\n\n`;
+      txt += r.itens.slice(0, MAX).map(linhaItem).join("\n");
+      if (r.itens.length > MAX) txt += `\n…e mais ${r.itens.length - MAX}. Seja mais específico.`;
+      itemAtual = r.itens.length === 1 ? r.itens[0] : null;
+      return {texto:txt, botoes:itemAtual && itemAtual.textoCompra ? ["Ver texto do pedido"] : []};
+    }
+    if (temForte) return {texto:"Nenhum item com saldo encontrado.", botoes:["Como funciona","Falar com uma pessoa"]};
+  }
+
+  // 4) Não entendeu: guarda para ensinar depois
+  registraNaoEntendi(msg);
+  return {texto:"Ainda não fui programado para responder isso. 😅 Posso ajudar a procurar um *material*, explicar como a busca funciona ou encaminhar você ao balcão.",
+    botoes:["Como funciona","Falar com uma pessoa"]};
+}
+
+// ---------------- CÍRCULO DE PERGUNTAS (o Simba "pensa" em etapas) ----------------
+// Em vez de decorar frases, o Simba desmonta a mensagem e se pergunta:
+//   1. O que a pessoa quer? (código, quantidade, se tem, indicação, autorização, algo pra uma tarefa)
+//   2. De quê? (o material, que vem da ZMM028)
+//   3. Pra quê? (a aplicação: "pro pneu do trator")
+//   4. Achei? Material dito = lista na hora; a pessoa filtra digitando ("42", "mobil", "e a 43?")
+// A resposta é montada com esses pedaços, não é uma frase pronta.
+
+const INTENCOES = [
+  ["autorizacao", /\b(posso|pode|podemos|da pra|consigo|liberado|liberam)\s+(eu\s+)?(levar|pegar|retirar|tirar)\b|\b(pra|para) casa\b/],
+  ["indicacao", /\b(ideal|melhor|indicad[oa]|recomend\w*|adequad[oa]|serve|servem|qual (eu )?(uso|usar|devo usar))\b/],
+  ["quantidade", /\b(quanto|quantos|quantas|quantidade)\b/],
+  ["codigo", /\b(codigo|cod)\b/],
+  ["existe", /^(e\s+)?(tem|ainda tem|voces tem|vcs tem|existe|tem como)\b/],
+  ["caracteristica", /\bqual (e )?(a )?(cor|foto|imagem|peso|cheiro|gosto)\b/],
+];
+// Palavras de pergunta não são material ("quanto tem de fita" não procura "quanto")
+("quanto quantos quantas quantidade ideal melhor indicado indicada recomenda recomendado adequado adequada " +
+ "serve servem levar usar uso devo liberado casa opcoes opcao").split(" ").forEach(w => STOPWORDS.add(w));
+
+// Tarefa -> material: "uma coisa pra apertar porca" vira "chave"
+const USOS = [
+  {verbos:/\b(apertar|soltar|desapertar|afrouxar|parafusar|desparafusar)\b/, nome:"chave (de boca, combinada, allen ou soquete)",
+   buscas:["chave combinada","chave boca","chave allen","soquete","chave fenda","chave phillips"]},
+  {verbos:/\b(furar|perfurar)\b/, nome:"broca", buscas:["broca"]},
+  {verbos:/\b(cortar)\b/, nome:"disco de corte ou serra", buscas:["disco corte","serra"]},
+  {verbos:/\b(soldar)\b/, nome:"eletrodo ou arame de solda", buscas:["eletrodo solda","arame solda"]},
+  {verbos:/\b(lubrificar|engraxar)\b/, nome:"graxa ou óleo lubrificante", buscas:["graxa","oleo lubrif"]},
+  {verbos:/\b(pintar)\b/, nome:"tinta, pincel ou rolo", buscas:["tinta","pincel","rolo"]},
+  {verbos:/\b(vedar)\b/, nome:"veda rosca ou silicone", buscas:["veda rosca","fita veda","silicone"]},
+  {verbos:/\b(fixar|prender|pendurar)\b/, nome:"bucha, parafuso ou abraçadeira", buscas:["bucha fix","abracadeira"]},
+  {verbos:/\b(emendar|isolar|encapar)\b/, nome:"fita isolante ou luva de emenda", buscas:["fita isolante","luva emenda"]},
+  {verbos:/\b(limpar)\b/, nome:"estopa, pano ou desengraxante", buscas:["estopa","pano","desengraxante"]},
+  {verbos:/\b(lixar)\b/, nome:"lixa ou disco de desbaste", buscas:["lixa","disco desbaste"]},
+];
+
+const EPI = new Set("luva oculo botina bota calcado capacete respirador mascara protetor abafador avental perneira cinto uniforme".split(" "));
+// Medida em mm que o SAP escreve em polegada ou com decimal (junta de papelão 3mm = 1/8" = 3,2mm)
+const EQUIV = {"1,6mm":["1/16","1.6mm"], "1.6mm":["1/16","1,6mm"], "3mm":["1/8","3.2mm","3,2mm"], "3,2mm":["1/8","3.2mm"],
+  "3.2mm":["1/8","3,2mm"], "5mm":["3/16"], "6mm":["1/4"], "8mm":["5/16"], "10mm":["3/8"], "12mm":["1/2"], "13mm":["1/2"],
+  "16mm":["5/8"], "19mm":["3/4"], "20mm":["3/4"], "25mm":["1"]};
+const comEquiv = t => EQUIV[t.txt] ? {...t, alts:[...t.alts, ...EQUIV[t.txt]]} : t;
+
+// Primeira palavra da descrição = tipo do produto (BOTINA, LUVA, PARAFUSO...)
+let TIPOS = null, TIPOS_DE = null;
+const tipos = () => (TIPOS_DE === ITENS && TIPOS) ||
+  (TIPOS_DE = ITENS, TIPOS = new Set(ITENS.map(i => (i.palavrasDescricao || [])[0]).filter(Boolean)));
+
+// Nicho: fica só com o que É o material, e palavra igual vence
+// ("pneu" não traz "PNEUM", "graxa" não traz "DESENGRAXANTE" nem "ANEL ... GRAXA")
+function soOMaterial(itens, tipoT, termos) {
+  const outros = termos.filter(t => t !== tipoT && !/\d/.test(t.txt)).map(t => t.txt);
+  const bate = (it, forte) => (it.palavrasDescricao || []).slice(0, 3).some(p => forte
+    // igual, ou colada com o resto do pedido ("junta papelao" acha "JUNTAPAPELAOHID")
+    ? notaTermo(tipoT, [p]) >= 13 || (p.startsWith(tipoT.txt) && outros.some(o => p.includes(o)))
+    : notaTermo(tipoT, [p]) >= 10);
+  const iguais = itens.filter(it => bate(it, true));
+  if (iguais.length) return iguais;
+  const comeco = itens.filter(it => bate(it, false));
+  return comeco.length ? comeco : itens;
+}
+
+// Memória da conversa: a última busca ("e a 43?" troca a medida) e a última lista ("mobil" filtra ela)
+let ultimaBusca = null, ultimaLista = null;
+
+// Material dito = lista na hora, sem pergunta de volta
+function mostraLista(itens, prefixo = "") {
+  ultimaLista = itens.length > 1 ? itens : null;
+  if (itens.length === 1) { itemAtual = itens[0]; return {texto: prefixo + detalhe(itens[0]), botoes: BOTOES_ITEM}; }
+  itemAtual = null;
+  const MAX = 15;
+  let txt = prefixo + itens.slice(0, MAX).map(linhaItem).join("\n");
+  if (itens.length > MAX) txt += `\n…e mais ${itens.length - MAX}. Me diga a *medida*, *marca* ou *modelo* pra eu filtrar.`;
+  return {texto: txt, botoes: []};
+}
+
+// Depois de uma lista: "e a 43?" refaz a busca trocando o detalhe; "mobil" ou "8mm" filtra a lista
+function continuaConversa(n) {
+  if (/^\d{5,}$/.test(n)) return null;
+  const eTambem = /^e\s/.test(n);
+  const ts = termosDa(n.replace(/^e\s+/, "")).filter(t => forcaMaterial(t) > 0);
+  if (!ts.length || ts.length > 3) return null;
+  const T = tipos();
+  if (ts.some(t => !/\d/.test(t.txt) && t.alts.some(a => T.has(a)))) return null;   // falou de outro material
+  const novos = ts.map(comEquiv);
+  if (eTambem && ultimaBusca) {
+    const trocaNumero = novos.some(t => /\d/.test(t.txt));
+    const termos = [...ultimaBusca.termos.filter(t => !(trocaNumero && /\d/.test(t.txt))), ...novos];
+    const r = busca(null, termos);
+    if (r.exato && r.itens.length) { ultimaBusca = {...ultimaBusca, termos}; return mostraLista(soOMaterial(r.itens, ultimaBusca.tipoT, termos)); }
+  }
+  if (!ultimaLista) return null;
+  const achados = ultimaLista.filter(it => novos.every(t => notaTermo(t, it.palavrasDescricao || []) > 0));
+  return achados.length ? mostraLista(achados) : null;
+}
+
+function pensa(msg, assunto) {
+  const n = normaliza(msg);
+  // 1) O que a pessoa quer?
+  const intencao = (INTENCOES.find(([, re]) => re.test(n)) || [])[0] || null;
+  const uso = USOS.find(u => u.verbos.test(n));
+  // 3) Pra quê? O que vem depois de "pra/para" (ou do verbo da tarefa) é a aplicação, não o material
+  let parte = n, aplicacao = "";
+  const corte = uso ? n.search(uso.verbos)
+    : (intencao === "indicacao" || intencao === "autorizacao") ? n.search(/\s(pra|para|pro)\s/) : -1;
+  if (corte > 0) {
+    parte = n.slice(0, corte);
+    aplicacao = n.slice(corte).replace(/^\s*(pra|para|pro)\s+/, "").replace(/^(o|a|os|as|um|uma)\s+/, "").replace(/[?!.]+$/, "").trim();
+  }
+  // 2) De quê? Só palavras que existem na planilha; palavra que é da conversa ("conta uma piada") não conta
+  const conversa = assunto && assunto.assunto.nome !== "cumprimento" ? assunto.palavras : [];
+  let termos = termosDa(parte).filter(t => forcaMaterial(t) > 0 && !conversa.includes(t.txt));
+  // "posso levar 2 capacetes": o 2 é quantidade, não medida ("quantas botinas 40" o 40 é o número da botina)
+  if (intencao === "autorizacao") termos = termos.filter(t => !/^\d{1,2}$/.test(t.txt));
+  const T = tipos();
+  const tipoT = termos.find(t => !/\d/.test(t.txt) && t.alts.some(a => T.has(a)));
+  // "boa noite, preciso de óculos" -> responde o boa noite antes do material
+  const saud = saudacaoDe(msg) ? `${saudacaoDe(msg)} 😊 ` : assunto && assunto.assunto.nome === "cumprimento" ? "Olá! 😊 " : "";
+
+  // Tarefa sem material ("uma coisa pra apertar porca"): sugere o que se usa e mostra o que tem
+  if (uso && !tipoT) {
+    const opcoes = uso.buscas.map(b => ({b, r: busca(b)})).filter(o => o.r.exato && o.r.itens.length);
+    return {texto: saud + `Pra *${aplicacao}* normalmente se usa *${uso.nome}*. 🔧\n` +
+      (opcoes.length ? `Com saldo agora eu tenho:\n\n${opcoes.map(o => `• ${o.b}  _(${o.r.itens.length})_`).join("\n")}\n\nQual delas?`
+                     : "No momento não encontrei com saldo. Confirme no *balcão*."),
+      botoes: opcoes.slice(0, 6).map(o => o.b)};
+  }
+  // Material + tarefa ("disco pra cortar"): procura o material próprio pra tarefa
+  if (uso && tipoT) { const b = uso.buscas.find(b => b.startsWith(tipoT.txt)); if (b) termos = termosDa(b); }
+  if (!tipoT) return null;
+
+  // 4) Achei quantos? Medida exata primeiro; a equivalência (3mm = 1/8") só entra se a exata não existir
+  // (parafuso 12mm e 1/2" são roscas diferentes; junta de papelão 3mm é a de 1/8")
+  let r = busca(null, termos), aviso = "", eq = "";
+  if (!(r.exato && r.itens.length) && termos.some(t => EQUIV[t.txt])) {
+    const comEq = termos.map(comEquiv), rEq = busca(null, comEq);
+    if (rEq.exato && rEq.itens.length) {
+      eq = `_(não achei ${termos.filter(t => EQUIV[t.txt]).map(t => `${t.txt} exato; mostrando o mais próximo: ${EQUIV[t.txt][0]}"`).join(", ")})_\n`;
+      r = rEq; termos = comEq;
+    }
+  }
+  if (!(r.exato && r.itens.length)) {
+    // Não existe com a medida pedida: poucos parecidos mostra; muitos não despeja, pede outra medida
+    const detalhes = termos.filter(t => /\d/.test(t.txt));
+    const resto = termos.filter(t => !detalhes.includes(t));
+    const r2 = detalhes.length && resto.length ? busca(null, resto) : null;
+    if (r2 && r2.exato && r2.itens.length) {
+      const outros = soOMaterial(r2.itens, tipoT, resto);
+      const pedido = termos.map(t => t.txt).join(" ");
+      ultimaBusca = {termos: resto, tipoT};
+      if (outros.length <= 15) return mostraLista(outros, saud + `Não encontrei *${pedido}* com saldo. 😕 Mas tenho estes:\n\n`);
+      ultimaLista = outros; itemAtual = null;
+      return {texto: saud + `Não encontrei *${pedido}* com saldo. 😕\nTenho *${outros.length}* outros (${resto.map(t => t.txt).join(" ")}). Me diga outra *medida* que eu filtro.`,
+              botoes:["Falar com uma pessoa"]};
+    }
+  }
+  const nome = termos.filter(t => !/\d/.test(t.txt)).map(t => t.txt).join(" ") || tipoT.txt;
+  const itens = r.exato ? soOMaterial(r.itens, tipoT, termos) : [];
+  ultimaBusca = {termos, tipoT};
+
+  // Pergunta sem sentido ou sem resposta ("qual a cor do parafuso do pneu da lua?"): aproveita o material
+  if (intencao === "caracteristica" || (!itens.length && termos.some(t => t !== tipoT && !/\d/.test(t.txt)))) {
+    return {texto: saud + (intencao === "caracteristica" ? "Essa informação eu não tenho 😅" : `Não encontrei *${termos.map(t => t.txt).join(" ")}* com saldo. 😕`) +
+      `\nMas se precisar de *${tipoT.txt}*, me diga a *medida* ou o *modelo* que eu passo o código!`,
+      botoes:[`Ver opções de ${tipoT.txt}`]};
+  }
+
+  if (intencao === "indicacao") {
+    const quem = EPI.has(tipoT.txt) ? "a *Segurança do Trabalho*" : "a *manutenção* ou seu *líder*";
+    // A aplicação aparece na descrição? ("luva pra produto químico" -> LUVA SEG QUIM)
+    const aplic = termosDa(aplicacao).filter(t => forcaMaterial(t) > 0 && t.txt !== tipoT.txt);
+    const servem = aplic.length ? itens.filter(it => aplic.some(t => notaTermo(t, it.palavrasDescricao || []) >= 6)) : [];
+    ultimaLista = itens.length > 1 ? (servem.length ? servem : itens) : null;
+    return {texto: saud + `Qual *${nome}* é ideal${aplicacao ? ` pra *${aplicacao}*` : ""} quem orienta é ${quem}. 🔧\n` +
+      `Se souber a *medida* ou o *modelo*, me diga que eu passo o código.` +
+      (servem.length ? `\n\nPela descrição, estas parecem ser pra *${aplicacao}* (confirme antes de usar):\n\n` +
+                         servem.slice(0, 5).map(linhaItem).join("\n") + (servem.length > 5 ? `\n…e mais ${servem.length - 5}.` : "")
+       : itens.length ? `\n\nCom saldo agora tenho *${itens.length}* ${itens.length === 1 ? "opção" : "opções"} de ${nome}.` : ""),
+      botoes: itens.length && !servem.length ? [`Ver opções de ${nome}`] : []};
+  }
+  if (!itens.length)
+    return {texto: saud + `No momento não encontrei *${termos.map(t => t.txt).join(" ")}* com saldo. 😕\nTente outro nome (marca, medida) ou mande o *código*.`,
+            botoes:["Falar com uma pessoa"]};
+  if (intencao === "autorizacao") {
+    itemAtual = itens.length === 1 ? itens[0] : null; ultimaLista = itens.length > 1 ? itens : null;
+    return {texto: saud + `Quantidade e liberação quem decide é a *equipe do balcão*` +
+      (/casa/.test(aplicacao) ? " (levar material pra casa só com autorização)" : "") +
+      `. 🙂\nMas já te adianto ${itens.length === 1 ? "o código" : "os códigos"} de *${nome}*:\n\n` +
+      itens.slice(0, 5).map(linhaItem).join("\n") + (itens.length > 5 ? `\n…e mais ${itens.length - 5}.` : ""),
+      botoes:["Falar com uma pessoa"]};
+  }
+  if (intencao === "quantidade" && itens.length === 1) {
+    const it = itens[0]; itemAtual = it; ultimaLista = null;
+    return {texto: saud + aviso + `📦 *${it.descricao}*\nCódigo *${it.codigo}*: tenho *${fmt(it.saldo)} ${it.unidade}* em estoque.`};
+  }
+  const abertura = intencao === "existe" ? "Tem sim! ✅\n" : "";
+  return mostraLista(itens, (saud ? saud.trim() + "\n\n" : "") + abertura + aviso + eq);
+}
+
+// ---------------- INTERFACE ----------------
+const chat = document.getElementById("chat"), txt = document.getElementById("txt");
+// html = resposta já montada pelo Simba (ex.: localização com ícones); texto = mensagem comum com *negrito* e _itálico_
+function bolha(texto, quem, botoes = [], html = "") {
+  const d = document.createElement("div"); d.className = "msg " + quem;
+  d.innerHTML = html || texto.replace(/&/g,"&amp;").replace(/</g,"&lt;")
+    .replace(/\*([^*\n]+)\*/g,"<b>$1</b>").replace(/_([^_\n]+)_/g,"<i>$1</i>");
+  if (botoes.length) {
+    const bx = document.createElement("div"); bx.className = "botoes";
+    for (const b of botoes) {
+      const el = document.createElement("button"); el.textContent = b;
+      el.onclick = () => enviar(b);
+      bx.appendChild(el);
+    }
+    d.appendChild(bx);
+  }
+  chat.appendChild(d); chat.scrollTop = chat.scrollHeight;
+}
+function enviar(texto) {
+  const m = (typeof texto === "string" ? texto : txt.value).trim(); if (!m) return;
+  bolha(m, "me"); txt.value = "";
+  const mostra = r => bolha(r.texto || "", "bot", r.botoes || [], r.html);
+  setTimeout(() => {
+    const r = responde(m);
+    // Resposta que precisa baixar algo antes (ex.: descrição completa): espera e mostra
+    if (r.espera) r.espera.then(() => mostra(r.depois()), () => mostra({texto:"Não consegui carregar a descrição completa agora. 😕 Tente de novo em instantes."}));
+    else mostra(r);
+  }, 250);
+}
+document.getElementById("send").onclick = enviar;
+txt.onkeydown = e => { if (e.key === "Enter") enviar(); };
+
+// ---------------- CELULAR: comportamento igual ao WhatsApp ----------------
+// O app ocupa exatamente a parte visível da tela. Quando o teclado abre, só a conversa
+// encolhe: o topo (Simba) continua no lugar e a caixa de digitar fica logo acima do teclado.
+const app = document.querySelector(".app");
+function ajustaTela() {
+  const vv = window.visualViewport;
+  // Zoom com dois dedos também diminui a parte visível: isso não é teclado, então não mexe
+  // (senão o ajuste e o zoom ficam brigando e a tela treme)
+  if (vv && vv.scale > 1.01) return;
+  const altura = vv ? vv.height : window.innerHeight;
+  document.documentElement.style.setProperty("--app-h", altura + "px");
+  // Alguns celulares "empurram" a página quando o teclado abre: devolve pro lugar
+  app.style.transform = vv && vv.offsetTop ? `translateY(${vv.offsetTop}px)` : "";
+  window.scrollTo(0, 0);
+}
+function rolaParaFim() { chat.scrollTop = chat.scrollHeight; }
+if (window.visualViewport) {
+  visualViewport.addEventListener("resize", () => { ajustaTela(); rolaParaFim(); });
+  visualViewport.addEventListener("scroll", ajustaTela);
+}
+window.addEventListener("resize", ajustaTela);
+window.addEventListener("orientationchange", () => setTimeout(ajustaTela, 300));
+txt.addEventListener("focus", () => setTimeout(() => { ajustaTela(); rolaParaFim(); }, 300));
+ajustaTela();
+
+// Sem zoom de dois dedos, igual ao WhatsApp (o maximum-scale=1 sozinho não basta em todo celular)
+document.addEventListener("touchmove", e => { if (e.touches.length > 1) e.preventDefault(); }, {passive:false});
+["gesturestart", "gesturechange"].forEach(t => document.addEventListener(t, e => e.preventDefault()));
+
+// ---------------- MENU E INFORMAÇÕES PÚBLICAS ----------------
+const menuBtn = document.getElementById("menuBtn"), menuBox = document.getElementById("menuBox");
+menuBtn.onclick = e => {
+  e.stopPropagation();
+  const aberto = menuBox.classList.toggle("open");
+  menuBtn.setAttribute("aria-expanded", aberto ? "true" : "false");
+};
+document.addEventListener("click", e => {
+  if (!menuBox.contains(e.target) && e.target !== menuBtn) {
+    menuBox.classList.remove("open"); menuBtn.setAttribute("aria-expanded", "false");
+  }
+});
+document.querySelectorAll("[data-modal]").forEach(b => b.onclick = () => {
+  menuBox.classList.remove("open"); menuBtn.setAttribute("aria-expanded", "false");
+  document.getElementById(b.dataset.modal).classList.add("open");
+});
+document.querySelectorAll(".modal-close").forEach(b => b.onclick = () => b.closest(".modal-wrap").classList.remove("open"));
+document.querySelectorAll(".modal-wrap").forEach(m => m.onclick = e => { if (e.target === m) m.classList.remove("open"); });
+
+document.getElementById("log").onclick = () => {
+  let l = [];
+  try { l = JSON.parse(localStorage.getItem(CHAVE_LOG) || "[]"); } catch (e) {}
+  bolha(l.length ? "📋 *Mensagens que não entendi* (últimas 30):\n\n" + l.slice(-30).map(x => `• ${x.msg}  _(${x.quando})_`).join("\n")
+                 : "📋 Ainda não tem nenhuma mensagem que eu não entendi. 😊", "bot");
+};
+
+// ---------------- VOZ (reconhecimento do próprio navegador, sem custo) ----------------
+// Converte o jeito de FALAR medidas no jeito de ESCREVER: "onze milímetros" -> "11mm"
+const NUM_FALADO = {zero:0, um:1, uma:1, dois:2, duas:2, tres:3, quatro:4, cinco:5, seis:6, sete:7, oito:8, nove:9,
+  dez:10, onze:11, doze:12, treze:13, quatorze:14, catorze:14, quinze:15, dezesseis:16, dezessete:17, dezoito:18,
+  dezenove:19, vinte:20, trinta:30, quarenta:40, cinquenta:50, sessenta:60, setenta:70, oitenta:80, noventa:90, cem:100};
+function textoFalado(s) {
+  let t = normaliza(s)
+    .replace(/\bmeia polegada\b/g, "1/2 pol").replace(/\btres quartos?\b/g, "3/4").replace(/\bum quarto\b/g, "1/4")
+    .replace(/\btres oitavos?\b/g, "3/8").replace(/\b(cinco|5) oitavos?\b/g, "5/8").replace(/\bmeio\b/g, "1/2");
+  // "vinte e cinco" -> 25
+  t = t.replace(/\b(vinte|trinta|quarenta|cinquenta|sessenta|setenta|oitenta|noventa) e (um|uma|dois|duas|tres|quatro|cinco|seis|sete|oito|nove)\b/g,
+    (_, d, u) => String(NUM_FALADO[d] + NUM_FALADO[u]));
+  // Só vira número quando é medida ("onze milímetros", "eme dez", "dez por cinquenta", "tamanho nove"),
+  // para "preciso de um cadeado" não virar "1 cadeado"
+  const UNID = /^(milimetros?|mm|centimetros?|metros?|polegadas?|quilos?|kilos?|litros?|watts?|volts?|por|eme|m|x)$/;
+  const ANTES = /^(eme|m|por|x|tamanho|tam|numero|n)$/;
+  const ws = t.split(" ");
+  t = ws.map((w, i) => NUM_FALADO[w] !== undefined && (UNID.test(ws[i+1] || "") || ANTES.test(ws[i-1] || ""))
+    ? String(NUM_FALADO[w]) : w).join(" ");
+  return t
+    .replace(/(\d) ?(milimetros?|mm)\b/g, "$1mm").replace(/(\d) ?(centimetros?)\b/g, "$1cm")
+    .replace(/(\d) ?(metros?)\b/g, "$1m").replace(/(\d) ?(polegadas?)\b/g, "$1 pol")
+    .replace(/(\d) ?(quilos?|kilos?)\b/g, "$1kg").replace(/(\d) ?(litros?)\b/g, "$1l")
+    .replace(/(\d) ?(watts?)\b/g, "$1w").replace(/(\d) ?(volts?)\b/g, "$1v")
+    .replace(/\b3 ?(m|eme)\b/g, "3m")                          // "três eme" -> 3M
+    .replace(/\b(m|eme) ?(\d+)\b/g, "m$2")                      // "eme dez" -> m10
+    .replace(/(\d) por (\d)/g, "$1x$2");                        // "dez por cinquenta" -> 10x50
+}
+
+const Reconhecimento = window.SpeechRecognition || window.webkitSpeechRecognition;
+const mic = document.getElementById("mic");
+if (!Reconhecimento) {
+  mic.onclick = () => bolha("⚠️ Seu navegador não tem reconhecimento de voz. Use o *Chrome* ou o *Edge*.", "bot");
+} else {
+  const rec = new Reconhecimento();
+  rec.lang = "pt-BR"; rec.interimResults = true; rec.continuous = false;
+  let ouvindo = false;
+  mic.onclick = () => { if (ouvindo) rec.stop(); else { txt.value = ""; rec.start(); } };
+  rec.onstart = () => { ouvindo = true; mic.classList.add("ouvindo"); txt.placeholder = "Ouvindo... pode falar"; };
+  rec.onresult = e => {
+    const r = e.results[e.results.length - 1];
+    txt.value = r[0].transcript;                               // mostra enquanto fala
+    if (r.isFinal) { txt.value = textoFalado(r[0].transcript); enviar(); }
+  };
+  rec.onerror = e => {
+    if (e.error === "not-allowed") bolha("⚠️ Libere o *microfone* para o navegador e tente de novo.", "bot");
+    else if (e.error === "no-speech") bolha("Não ouvi nada. 🎤 Aperte o microfone e fale de novo.", "bot");
+    else if (e.error === "network") bolha("⚠️ O reconhecimento de voz precisa de internet.", "bot");
+  };
+  rec.onend = () => { ouvindo = false; mic.classList.remove("ouvindo"); txt.placeholder = "Digite ou aperte 🎤 para falar"; };
+}
+
+// Layout fixo da planilha exportada do SAP: dados a partir da LINHA 6
+// A = código | B = descrição | C = unidade | E = saldo | F = texto do pedido de compra (opcional)
+const LINHA_INICIO = 6, COL_COD = 0, COL_DESC = 1, COL_UN = 2, COL_SALDO = 4, COL_TEXTO_COMPRA = 5;
+
+document.getElementById("file").onchange = async e => {
+  const f = e.target.files[0]; if (!f) return;
+  const wb = XLSX.read(await f.arrayBuffer());
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  // Lê sempre a partir de A1, para "linha 6" ser a linha 6 do Excel mesmo com linhas vazias no topo
+  const rg = XLSX.utils.decode_range(ws["!ref"]); rg.s.r = 0; rg.s.c = 0;
+  const rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:"", raw:true, blankrows:true, range:rg})
+    .slice(LINHA_INICIO - 1);
+  const num = v => typeof v === "number" ? v : Number(String(v).trim().replace(/\./g,"").replace(",", ".")) || 0;
+  // Soma saldo se o mesmo material aparece em mais de uma linha (outro depósito)
+  const mapa = new Map();
+  for (const r of rows) {
+    const c = String(r[COL_COD]).trim(), d = String(r[COL_DESC]).trim();
+    if (!c || !d) continue;
+    const textoCompra = String(r[COL_TEXTO_COMPRA] || "").trim();
+    const it = mapa.get(c) || {codigo:c, descricao:d, unidade:String(r[COL_UN]).trim(), saldo:0, textoCompra};
+    if (!it.textoCompra && textoCompra) it.textoCompra = textoCompra;
+    it.saldo += num(r[COL_SALDO]); mapa.set(c, it);
+  }
+  if (!mapa.size) return bolha("Não achei itens a partir da linha 6. 😕", "bot");
+  ITENS = [...mapa.values()]; indexa();
+  document.getElementById("info").textContent = `${fmt(ITENS.length)} itens – ${f.name}`;
+  const agora = new Date();
+  document.getElementById("saldoInfo").textContent = `Saldo atualizado em ${agora.toLocaleDateString("pt-BR")} às ${agora.toLocaleTimeString("pt-BR", {hour:"2-digit", minute:"2-digit"})}`;
+  bolha(`✅ Planilha carregada.`, "bot");
+};
+
+indexa();
+if (BASE_ZMM028 && BASE_ZMM028.generatedAt) {
+  document.getElementById("saldoInfo").textContent = `Saldo atualizado em ${BASE_ZMM028.generatedAt}`;
+}
+bolha(SAUDACAO, "bot");
+txt.focus();
+</script>
+</body>
+</html>
